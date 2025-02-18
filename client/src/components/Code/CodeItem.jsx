@@ -8,7 +8,6 @@ function CodeItem({ code }) {
 
   const fetchComments = async () => {
     try {
-      // Use code.id instead of code._id
       const { data } = await api.get(`/comments/${code.id}`);
       setComments(data);
     } catch (error) {
