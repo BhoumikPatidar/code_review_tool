@@ -1,0 +1,15 @@
+{
+    "name": "Code Review Tool",
+    "dockerFile": "Dockerfile",
+    "forwardPorts": [5173, 12345],
+    "postCreateCommand": "cd server && npm install && cd ../client && npm install",
+    "postStartCommand": "sudo service postgresql start && sudo -u postgres psql -c 'CREATE DATABASE code_review_tool;'",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "dbaeumer.vscode-eslint",
+                "esbenp.prettier-vscode"
+            ]
+        }
+    }
+}
