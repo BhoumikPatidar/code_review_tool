@@ -2,13 +2,7 @@
     "name": "Code Review Tool Dev Environment",
     "image": "mcr.microsoft.com/devcontainers/javascript-node:20",
     "features": {
-      "ghcr.io/devcontainers/features/docker-in-docker:1": {},
-      "ghcr.io/devcontainers/features/postgres:1": {
-        "version": "15",
-        "database": "codereviewdb",
-        "user": "postgres",
-        "password": "postgres"
-      }
+      "ghcr.io/devcontainers/features/docker-in-docker:1": {}
     },
     "customizations": {
       "vscode": {
