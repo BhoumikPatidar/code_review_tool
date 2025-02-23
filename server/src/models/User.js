@@ -3,6 +3,11 @@ const bcrypt = require('bcryptjs');
 const sequelize = require('../config/database');
 
 const User = sequelize.define('User', {
+  id: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    primaryKey: true
+  },
   username: {
     type: DataTypes.STRING,
     allowNull: false,
@@ -13,11 +18,11 @@ const User = sequelize.define('User', {
     allowNull: false,
   },
 }, {
+  tableName: "users",
   hooks: {
     beforeCreate: async (user) => {
       if (user.password) {
-        const salt = await bcrypt.genSalt(10);
-        user.password = await bcrypt.hash(user.password, salt);
+        user.password = await bcrypt.hash(user.password, 10);
       }
     },
   },

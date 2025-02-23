@@ -16,6 +16,7 @@ app.use(cors({
   origin: true, // Allow all origins in development
   credentials: true
 }));
+
 app.use(express.json());
 
 // API Routes
