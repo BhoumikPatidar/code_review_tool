@@ -3,6 +3,11 @@ const sequelize = require('../config/database');
 const User = require('./User');
 
 const Code = sequelize.define('Code', {
+  id: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    primaryKey: true
+  },
   title: {
     type: DataTypes.STRING,
     allowNull: false,
@@ -11,6 +16,8 @@ const Code = sequelize.define('Code', {
     type: DataTypes.TEXT,
     allowNull: false,
   },
+}, {
+  tableName: 'codes',
 });
 
 // Associate Code with User (author)

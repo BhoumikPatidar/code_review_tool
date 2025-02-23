@@ -1,9 +1,14 @@
 const { Sequelize } = require('sequelize');
 require('dotenv').config();
 
-const sequelize = new Sequelize(process.env.POSTGRES_URI, {
-  dialect: 'postgres',
-  logging: false, // disable logging; change to console.log to debug
+const sequelize = new Sequelize({
+  host: process.env.MYSQL_HOST,
+  username: process.env.MYSQL_USER,
+  password: process.env.MYSQL_PASSWORD,
+  database: process.env.MYSQL_DB,
+  port: process.env.MYSQL_PORT,
+  dialect: 'mysql',
+  logging: true,
 });
 
 module.exports = sequelize;

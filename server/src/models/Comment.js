@@ -4,10 +4,17 @@ const User = require('./User');
 const Code = require('./Code');
 
 const Comment = sequelize.define('Comment', {
+  id: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    primaryKey: true
+  },
   comment: {
     type: DataTypes.TEXT,
     allowNull: false,
   },
+}, {
+  tableName: 'comments',
 });
 
 // Associate Comment with User (author)
