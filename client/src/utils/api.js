@@ -4,7 +4,7 @@ import axios from 'axios';
 const isCodespace = window.location.hostname.includes('.app.github.dev');
 const baseURL = isCodespace 
   ? `https://${window.location.hostname.replace('5173', '80')}/api`
-  : 'http://10.7.4.221:80/api';
+  : 'http://127.0.0.1:80/api';
 
 const api = axios.create({
   baseURL: baseURL
