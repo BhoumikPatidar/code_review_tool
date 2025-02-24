@@ -10,12 +10,8 @@ const commentRoutes = require('./routes/commentRoutes');
 
 const app = express();
 
-// Middleware
-// Middleware
-app.use(cors({
-  origin: true, // Allow all origins in development
-  credentials: true
-}));
+// Allow all origins in development
+app.use(cors());
 
 app.use(express.json());
 

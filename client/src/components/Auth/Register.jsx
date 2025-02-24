@@ -14,6 +14,7 @@ function Register() {
       localStorage.setItem('token', data.token);
       navigate('/dashboard');
     } catch (error) {
+      console.log(error);
       alert(error.response?.data?.message || 'Registration failed');
     }
   };

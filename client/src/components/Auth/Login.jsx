@@ -11,7 +11,7 @@ function Login() {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const { data } = await api.post('/auth/Login', { username, password });
+      const { data } = await api.post('/auth/login', { username, password });
       // Save both token and user info in localStorage
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
