@@ -3,8 +3,8 @@ import axios from 'axios';
 // Get the GitHub Codespace URL from the window location
 const isCodespace = window.location.hostname.includes('.app.github.dev');
 const baseURL = isCodespace 
-  ? `https://${window.location.hostname.replace('5173', '12345')}/api`
-  : 'http://10.7.4.221:12345/api';
+  ? `https://${window.location.hostname.replace('5173', '80')}/api`
+  : 'http://10.7.4.221:80/api';
 
 const api = axios.create({
   baseURL: baseURL
