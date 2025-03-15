@@ -80,9 +80,9 @@ exports.approvePR = async (req, res) => {
 
 /**
  * Merge an approved Pull Request.
- * Uses a temporary working clone of the bare repository,
- * checks out the target branch, and merges the source branch into the target branch.
- * Then pushes the merged changes back to the bare repository.
+ * This function clones the bare repository into a temporary working directory,
+ * checks out both target and source branches, and then uses mergeBranches to merge them.
+ * After the merge, it pushes the updated branch back to the bare repository and cleans up.
  */
 exports.mergePR = async (req, res) => {
     try {
@@ -123,7 +123,7 @@ exports.mergePR = async (req, res) => {
       await repo.checkoutBranch(pr.targetBranch);
       console.log("mergePR: Target branch checked out.");
       
-      // Fetch latest changes from remote
+      // Fetch latest updates from remote
       console.log("mergePR: Fetching all updates from remote...");
       await repo.fetchAll({
         callbacks: {
@@ -139,22 +139,16 @@ exports.mergePR = async (req, res) => {
         console.log("mergePR: Source branch checked out.");
       } catch (err) {
         console.warn("mergePR: Source branch not found locally, attempting to create from remote...");
-        try {
-          const remoteRef = await repo.getReference(`refs/remotes/origin/${pr.sourceBranch}`);
-          console.log("mergePR: Remote reference for source branch:", remoteRef.name());
-          const remoteCommit = await repo.getCommit(remoteRef.target());
-          console.log("mergePR: Remote commit for source branch:", remoteCommit.id().toString());
-          await repo.createBranch(pr.sourceBranch, remoteCommit, false);
-          await repo.checkoutBranch(pr.sourceBranch);
-          console.log("mergePR: Source branch created and checked out.");
-        } catch (innerErr) {
-          console.error("mergePR: Failed to create source branch from remote:", innerErr);
-          throw innerErr;
-        }
+        const remoteRef = await repo.getReference(`refs/remotes/origin/${pr.sourceBranch}`);
+        console.log("mergePR: Remote reference for source branch:", remoteRef.name());
+        const remoteCommit = await repo.getCommit(remoteRef.target());
+        console.log("mergePR: Remote commit for source branch:", remoteCommit.id().toString());
+        await repo.createBranch(pr.sourceBranch, remoteCommit, false);
+        await repo.checkoutBranch(pr.sourceBranch);
+        console.log("mergePR: Source branch created and checked out.");
       }
       
-      // Get the commit from the source branch to merge
-      console.log("mergePR: Getting commit from source branch:", pr.sourceBranch);
+      // Log source commit for debugging
       const sourceCommit = await repo.getBranchCommit(pr.sourceBranch);
       console.log("mergePR: Source Commit OID:", sourceCommit.id().toString());
       
@@ -163,12 +157,10 @@ exports.mergePR = async (req, res) => {
       await repo.checkoutBranch(pr.targetBranch);
       console.log("mergePR: Target branch re-checked out.");
       
-      // Perform the merge (using a forced strategy for simplicity)
-      console.log("mergePR: Starting merge operation...");
-      await NodeGit.Merge.merge(repo, sourceCommit, null, {
-        checkoutStrategy: NodeGit.Checkout.STRATEGY.FORCE,
-      });
-      console.log("mergePR: Merge operation completed.");
+      // Perform the merge using mergeBranches (higher-level API)
+      console.log(`mergePR: Merging branch ${pr.sourceBranch} into ${pr.targetBranch} using mergeBranches...`);
+      await repo.mergeBranches(pr.targetBranch, pr.sourceBranch, null, NodeGit.Merge.PREFERENCE.NONE, null);
+      console.log("mergePR: mergeBranches operation completed.");
       
       // Push the updated target branch back to the bare repository
       const remote = await repo.getRemote("origin");
@@ -200,3 +192,4 @@ exports.mergePR = async (req, res) => {
       res.status(500).json({ error: error.message });
     }
   };
+  
