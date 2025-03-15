@@ -8,6 +8,7 @@ const authRoutes = require('./routes/authRoutes');
 const codeRoutes = require('./routes/codeRoutes');
 const commentRoutes = require('./routes/commentRoutes');
 const repoRoutes = require('./routes/repoRoutes'); // New Git integration routes
+const prRoutes = require('./routes/prRoutes');  // New PR routes
 
 const app = express();
 
@@ -20,6 +21,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/codes', codeRoutes);
 app.use('/api/comments', commentRoutes);
 app.use('/api/repos', repoRoutes); // Mount the repository routes
+app.use('/api/prs', prRoutes);  // Mount the PR endpoints
 
 // Use PORT from environment or fallback to 5000
 const PORT = process.env.PORT ||5000;
