@@ -1,7 +1,8 @@
 // server/src/controllers/repoController.js
 const NodeGit = require("nodegit");
 const path = require("path");
-const fs = require("fs");
+const fs = require("fs-extra"); // using fs-extra for convenience
+const PullRequest = require("../models/PullRequest");
 
 // Define the base directory where your repositories are located
 const REPO_BASE_PATH = "/var/lib/git";
@@ -26,6 +27,36 @@ async function listRepos(req, res) {
  * Get the commit history for a specified repository.
  * Expects the repository name in req.params.repoName.
  */
+
+exports.createRepo = async (req, res) => {
+  try {
+    const { name } = req.body;
+    if (!name) {
+      return res.status(400).json({ error: "Repository name is required" });
+    }
+    // Ensure repository name ends with .git
+    const repoName = name.endsWith('.git') ? name : `${name}.git`;
+    const newRepoPath = path.join(REPO_BASE_PATH, repoName);
+    
+    // Check if repository already exists
+    try {
+      await fs.access(newRepoPath);
+      return res.status(400).json({ error: "Repository already exists" });
+    } catch (err) {
+      // Repository doesn't exist; continue to create.
+    }
+    
+    console.log("Creating repository at:", newRepoPath);
+    // Create a bare repository (isBare = 1)
+    const repo = await NodeGit.Repository.init(newRepoPath, 1);
+    console.log("Repository created at:", repo.path());
+    res.json({ message: "Repository created successfully", repository: repoName });
+  } catch (error) {
+    console.error("Error creating repository:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
 async function getCommits(req, res) {
   const repoName = req.params.repoName;
   const repoPath = path.join(REPO_BASE_PATH, repoName);
