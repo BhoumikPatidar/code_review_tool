@@ -8,6 +8,7 @@ import Login from './components/Auth/Login';
 import Register from './components/Auth/Register';
 import PRDashboard from './pages/PRDashboard';  // Import the new page
 import RepositoryManagement from './pages/RepositoryManagement'; // New import
+import PRDetail from './pages/PRDetail'; // Import the new detailed PR view
 
 
 function App() {
@@ -20,6 +21,7 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/prs" element={<PRDashboard />} /> {/* New route for PR dashboard */}
+        <Route path="/prs/:id" element={<PRDetail />} />  {/* Detailed PR view */}
         <Route path="/repositories" element={<RepositoryManagement />} /> {/* New route */}
 
       </Routes>

@@ -1,5 +1,6 @@
 // src/pages/PRDashboard.jsx
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import api from '../utils/api';
 
 function PRDashboard() {
@@ -46,7 +47,7 @@ function PRDashboard() {
       fetchPRs();
     } catch (error) {
       console.error("Error creating PR:", error);
-      setMessage("Error creating PR");
+      setMessage(error.response?.data?.error || "Error creating PR");
     }
     setLoading(false);
   };
@@ -148,6 +149,7 @@ function PRDashboard() {
               <th>Title</th>
               <th>Status</th>
               <th>Actions</th>
+              <th>Details</th>
             </tr>
           </thead>
           <tbody>
@@ -169,6 +171,9 @@ function PRDashboard() {
                   {pr.status === 'merged' && (
                     <span>Merged</span>
                   )}
+                </td>
+                <td>
+                  <Link to={`/prs/${pr.id}`}>View Details</Link>
                 </td>
               </tr>
             ))}

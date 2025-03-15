@@ -66,7 +66,25 @@ async function getCommits(req, res) {
 
   try {
     const repo = await NodeGit.Repository.open(repoPath);
-    const headCommit = await repo.getHeadCommit();
+    let headCommit;
+
+    // Try to get the HEAD commit.
+    try {
+      headCommit = await repo.getHeadCommit();
+    } catch (e) {
+      console.warn("getHeadCommit failed:", e.message);
+      headCommit = null;
+    }
+
+    // If no HEAD, try to get the commit from the 'main' branch.
+    if (!headCommit) {
+      try {
+        headCommit = await repo.getBranchCommit('main');
+      } catch (e) {
+        console.warn("getBranchCommit('main') failed:", e.message);
+        return res.json({ commits: [] });
+      }
+    }
 
     let commits = [];
     const history = headCommit.history();
