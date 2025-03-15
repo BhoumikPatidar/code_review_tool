@@ -1,14 +1,16 @@
 // server/src/controllers/prController.js
 const NodeGit = require("nodegit");
 const path = require("path");
+const os = require("os");
+const fs = require("fs-extra"); // Using fs-extra for convenient directory removal
 const PullRequest = require("../models/PullRequest");
 
-// Base directory where repositories are stored
+// Base directory where your bare repositories are stored
 const REPO_BASE_PATH = "/var/lib/git";
 
 /**
  * Create a new Pull Request.
- * Expected body: { repository, sourceBranch, targetBranch, title, description }
+ * Expects a request body with: repository, sourceBranch, targetBranch, title, description.
  */
 exports.createPR = async (req, res) => {
   try {
@@ -59,7 +61,7 @@ exports.getPR = async (req, res) => {
 
 /**
  * Approve a Pull Request.
- * Marks the PR as 'approved'.
+ * This marks the PR as "approved" in the database.
  */
 exports.approvePR = async (req, res) => {
   try {
@@ -78,7 +80,12 @@ exports.approvePR = async (req, res) => {
 
 /**
  * Merge an approved Pull Request.
- * Uses NodeGit to merge the source branch into the target branch.
+ * Since bare repositories do not support checkout operations, this method:
+ *   1. Clones the bare repository into a temporary working directory.
+ *   2. Checks out the target branch.
+ *   3. Merges the source branch into the target branch.
+ *   4. Pushes the merged changes back to the bare repository.
+ *   5. Cleans up the temporary directory.
  */
 exports.mergePR = async (req, res) => {
   try {
@@ -89,22 +96,69 @@ exports.mergePR = async (req, res) => {
     if (pr.status !== "approved") {
       return res.status(400).json({ error: "PR must be approved before merging" });
     }
-    const repoPath = path.join(REPO_BASE_PATH, pr.repository);
-    const repo = await NodeGit.Repository.open(repoPath);
-
-    // Checkout the target branch (force checkout for simplicity)
+    
+    const bareRepoPath = path.join(REPO_BASE_PATH, pr.repository);
+    // Create a temporary directory for a working clone
+    const tempDir = path.join(os.tmpdir(), `repo-merge-temp-${Date.now()}`);
+    
+    // Clone the bare repository into a working (non-bare) clone
+    const cloneOptions = {
+      bare: 0,
+      checkoutBranch: pr.targetBranch,
+      fetchOpts: {
+        callbacks: {
+          certificateCheck: () => 0
+        }
+      }
+    };
+    const repo = await NodeGit.Clone(bareRepoPath, tempDir, cloneOptions);
+    
+    // Ensure we're on the target branch
     await repo.checkoutBranch(pr.targetBranch);
-    // Get the commit pointed to by the source branch
+    
+    // Fetch latest changes and ensure the source branch is available locally
+    await repo.fetchAll({
+      callbacks: {
+        certificateCheck: () => 0
+      }
+    });
+    try {
+      await repo.checkoutBranch(pr.sourceBranch);
+    } catch (err) {
+      // If the source branch doesn't exist locally, create it tracking the remote branch
+      await repo.createBranch(pr.sourceBranch, `origin/${pr.sourceBranch}`, false);
+      await repo.checkoutBranch(pr.sourceBranch);
+    }
+    
+    // Get the commit from the source branch to merge
     const sourceCommit = await repo.getBranchCommit(pr.sourceBranch);
-    // Perform a simplified merge of the source commit into the target branch.
-    // (Note: This example uses a forced merge strategy; real-world scenarios require more robust conflict handling.)
+    
+    // Checkout the target branch again before merging
+    await repo.checkoutBranch(pr.targetBranch);
+    
+    // Perform the merge (using a forced strategy for simplicity)
     await NodeGit.Merge.merge(repo, sourceCommit, null, {
       checkoutStrategy: NodeGit.Checkout.STRATEGY.FORCE,
     });
-
-    // Mark the PR as merged
+    
+    // Push the updated target branch back to the bare repository
+    const remote = await repo.getRemote("origin");
+    await remote.push(
+      [`refs/heads/${pr.targetBranch}:refs/heads/${pr.targetBranch}`],
+      {
+        callbacks: {
+          certificateCheck: () => 0,
+        },
+      }
+    );
+    
+    // Update the PR status to merged
     pr.status = "merged";
     await pr.save();
+    
+    // Clean up the temporary clone
+    await fs.remove(tempDir);
+    
     res.json(pr);
   } catch (error) {
     console.error("Error merging PR:", error);
