@@ -22,7 +22,10 @@ app.use('/api/comments', commentRoutes);
 app.use('/api/repos', repoRoutes); // Mount the repository routes
 
 // Use PORT from environment or fallback to 5000
-const PORT = process.env.PORT || 80;
+const PORT = process.env.PORT ||5000;
+app.get("/", (req, res) => {
+    res.send("Server is running!");
+});
 
 syncDatabase()
   .then(() => {
