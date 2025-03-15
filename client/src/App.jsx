@@ -6,6 +6,8 @@ import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
 import Login from './components/Auth/Login';
 import Register from './components/Auth/Register';
+import PRDashboard from './pages/PRDashboard';  // Import the new page
+
 
 function App() {
   return (
@@ -16,6 +18,7 @@ function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/prs" element={<PRDashboard />} /> {/* New route for PR dashboard */}
       </Routes>
     </div>
   );
