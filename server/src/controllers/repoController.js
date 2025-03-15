@@ -24,11 +24,10 @@ async function listRepos(req, res) {
 }
 
 /**
- * Get the commit history for a specified repository.
- * Expects the repository name in req.params.repoName.
+ * Create a new repository.
+ * Expects a JSON body with: { name: "myproject" } (the tool will append .git if missing)
  */
-
-exports.createRepo = async (req, res) => {
+async function createRepo(req, res) {
   try {
     const { name } = req.body;
     if (!name) {
@@ -55,8 +54,12 @@ exports.createRepo = async (req, res) => {
     console.error("Error creating repository:", error);
     res.status(500).json({ error: error.message });
   }
-};
+}
 
+/**
+ * Get the commit history for a specified repository.
+ * Expects the repository name in req.params.repoName.
+ */
 async function getCommits(req, res) {
   const repoName = req.params.repoName;
   const repoPath = path.join(REPO_BASE_PATH, repoName);
@@ -149,4 +152,4 @@ async function getDiff(req, res) {
   }
 }
 
-module.exports = { listRepos, getCommits, getDiff };
+module.exports = { listRepos, createRepo, getCommits, getDiff };
