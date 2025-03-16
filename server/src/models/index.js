@@ -6,7 +6,8 @@ const PullRequest = require('./PullRequest');
 // Sync all models with the database
 const syncDatabase = async () => {
   try {
-    await sequelize.sync({ force: false });
+    await sequelize.sync({ alter: true }); // alter adjusts tables to match models
+
     console.log("Database synchronized");
   } catch (error) {
     console.error("Error synchronizing database:", error);
