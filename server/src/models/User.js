@@ -1,3 +1,4 @@
+// server/src/models/User.js
 const { DataTypes } = require('sequelize');
 const bcrypt = require('bcryptjs');
 const sequelize = require('../config/database');
@@ -17,6 +18,10 @@ const User = sequelize.define('User', {
   password: {
     type: DataTypes.STRING,
     allowNull: false,
+  },
+  publicKey: {   // NEW FIELD for SSH public key
+    type: DataTypes.TEXT,
+    allowNull: true,
   },
 }, {
   tableName: "users",

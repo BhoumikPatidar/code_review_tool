@@ -19,6 +19,7 @@ function Header() {
         <Link to="/dashboard" style={{ marginRight: '1rem' }}>Dashboard</Link>
         <Link to="/prs" style={{ marginRight: '1rem' }}>Pull Requests</Link>
         <Link to="/repositories" style={{ marginRight: '1rem' }}>Repositories</Link>
+        <Link to="/sshkey" style={{ marginRight: '1rem' }}>SSH Key</Link>
         {user && (
           <span>
             Welcome, {user.username} 
