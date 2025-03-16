@@ -11,8 +11,10 @@ function PRDetail() {
   const [diff, setDiff] = useState(null);
   const [loadingDiff, setLoadingDiff] = useState(false);
   const [error, setError] = useState('');
+  const [prComments, setPrComments] = useState([]);
+  const [newComment, setNewComment] = useState('');
 
-  // Fetch PR details using backend endpoint /api/prs/:id
+  // Fetch PR details
   useEffect(() => {
     const fetchPR = async () => {
       try {
@@ -32,7 +34,6 @@ function PRDetail() {
       const fetchCommits = async () => {
         try {
           const { data } = await api.get(`/repos/${pr.repository}/commits`);
-          // In a real app, you might filter commits to those belonging to the source branch.
           setCommits(data.commits);
         } catch (err) {
           console.error(err);
@@ -40,6 +41,23 @@ function PRDetail() {
         }
       };
       fetchCommits();
+    }
+  }, [pr]);
+
+  // Fetch PR comments
+  const fetchPRComments = async () => {
+    try {
+      const { data } = await api.get(`/prcomments/${id}`);
+      setPrComments(data);
+    } catch (err) {
+      console.error(err);
+      setError('Error fetching PR comments');
+    }
+  };
+
+  useEffect(() => {
+    if (pr) {
+      fetchPRComments();
     }
   }, [pr]);
 
@@ -56,6 +74,19 @@ function PRDetail() {
       setError('Error fetching diff for commit');
     }
     setLoadingDiff(false);
+  };
+
+  // Handle posting a new PR comment
+  const handlePostComment = async (e) => {
+    e.preventDefault();
+    try {
+      await api.post('/prcomments', { prId: pr.id, comment: newComment });
+      setNewComment('');
+      fetchPRComments();
+    } catch (err) {
+      console.error(err);
+      setError('Error posting comment');
+    }
   };
 
   return (
@@ -105,6 +136,33 @@ function PRDetail() {
               ))}
             </div>
           )}
+
+          <hr />
+          <h3>PR Comments</h3>
+          {prComments.length === 0 ? (
+            <p>No comments yet.</p>
+          ) : (
+            <ul>
+              {prComments.map((c) => (
+                <li key={c.id}>
+                  <p>{c.comment}</p>
+                  <small>By: {c.author?.username}</small>
+                </li>
+              ))}
+            </ul>
+          )}
+          <form onSubmit={handlePostComment}>
+            <textarea
+              placeholder="Add your comment..."
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              rows="3"
+              cols="50"
+              required
+            />
+            <br />
+            <button type="submit">Post Comment</button>
+          </form>
         </div>
       ) : (
         <p>Loading PR details...</p>
