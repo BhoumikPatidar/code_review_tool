@@ -1,11 +1,4 @@
 // server/src/app.js
-const cors = require('cors');
-app.use(cors({
-  origin: '*',
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
-
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
@@ -36,9 +29,6 @@ app.use('/api/comments', commentRoutes);
 app.use('/api/repos', repoRoutes);
 app.use('/api/prs', prRoutes);
 app.use('/api/prcomments', prCommentRoutes); // Mount the PR comments endpoint
-const prRoutes = require('./routes/prRoutes');
-app.use('/api/prs', prRoutes);
-
 
 // Sync database and start the server
 syncDatabase()
@@ -48,4 +38,3 @@ syncDatabase()
     );
   })
   .catch(err => console.error("Error syncing database:", err));
-

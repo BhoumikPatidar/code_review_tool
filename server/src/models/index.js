@@ -5,7 +5,7 @@ const Code = require('./Code');
 const Comment = require('./Comment');
 const PullRequest = require('./PullRequest');
 const PRComment = require('./PRComment');
-const staticAnalysisReport = require('./staticAnalysisReport');
+
 // Sync all models with the database
 const syncDatabase = async () => {
   try {
@@ -16,6 +16,4 @@ const syncDatabase = async () => {
   }
 };
 
-module.exports = { sequelize, User, Code, Comment, PullRequest, PRComment,staticAnalysisReport, syncDatabase };
-
-
+module.exports = { sequelize, User, Code, Comment, PullRequest, PRComment, syncDatabase };
