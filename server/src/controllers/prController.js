@@ -2,7 +2,7 @@
 const NodeGit = require("nodegit");
 const path = require("path");
 const os = require("os");
-const fs = require("fs-extra"); // Using fs-extra for convenient directory removal
+const fs = require("fs-extra"); // Using fs-extra for convenient directory removal      
 const { exec } = require("child_process");
 const PullRequest = require("../models/PullRequest");
 const util = require("util");
@@ -112,7 +112,7 @@ const mergePR = async (req, res) => {
     }
     if (pr.status !== "approved") {
       console.error("mergePR: PR not approved");
-      return res.status(400).json({ error: "PR must be approved before merging" });   
+      return res.status(400).json({ error: "PR must be approved before merging" });     
     }
 
     const bareRepoPath = path.join(REPO_BASE_PATH, pr.repository);
@@ -132,7 +132,7 @@ const mergePR = async (req, res) => {
         }
       }
     };
-    console.log("mergePR: Cloning repository from", bareRepoPath, "to", tempDir);     
+    console.log("mergePR: Cloning repository from", bareRepoPath, "to", tempDir);       
     const repo = await NodeGit.Clone(bareRepoPath, tempDir, cloneOptions);
     console.log("mergePR: Clone completed.");
 
@@ -151,14 +151,14 @@ const mergePR = async (req, res) => {
     console.log("mergePR: Fetch complete.");
 
     // Ensure source branch is available locally
-    console.log("mergePR: Attempting to checkout source branch:", pr.sourceBranch);   
+    console.log("mergePR: Attempting to checkout source branch:", pr.sourceBranch);     
     try {
       await repo.checkoutBranch(pr.sourceBranch);
       console.log("mergePR: Source branch checked out.");
     } catch (err) {
       console.warn("mergePR: Source branch not found locally, attempting to create from remote...");
       const remoteRef = await repo.getReference(`refs/remotes/origin/${pr.sourceBranch}`);
-      console.log("mergePR: Remote reference for source branch:", remoteRef.name());  
+      console.log("mergePR: Remote reference for source branch:", remoteRef.name());    
       const remoteCommit = await repo.getCommit(remoteRef.target());
       console.log("mergePR: Remote commit for source branch:", remoteCommit.id().toString());
       await repo.createBranch(pr.sourceBranch, remoteCommit, false);
@@ -207,7 +207,7 @@ const mergePR = async (req, res) => {
     res.json(pr);
   } catch (error) {
     console.error("mergePR: Error during merge process:", error);
-    res.status(500).json({ error: error.message });  
+    res.status(500).json({ error: error.message });
 }
 };
 
@@ -220,10 +220,10 @@ const runStaticAnalysis = async (req, res) => {
       return res.status(404).json({ error: "Pull Request not found" });
     }
 
-    // Use the bare repository path and clone it into a temporary working directory.
-    const bareRepoPath = path.join(REPO_BASE_PATH, pr.repository);
+    // Use the bare repository path and clone it into a temporary working directory.    
+    const bareRepoPath = path.join(REPO_BASE_PATH, `${pr.repository}.git`);
     const tempDir = path.join(os.tmpdir(), `static-analysis-${Date.now()}`);
-    console.log("Cloning for static analysis from", bareRepoPath, "to", tempDir);
+    console.log("Cloning for static analysis from", bareRepoPath, "to", tempDir);       
 
     // Clone the repository using the target branch (or main branch if targetBranch is not specified)
     const cloneOptions = {
@@ -272,7 +272,14 @@ const runStaticAnalysis = async (req, res) => {
     if (cppFilesExist) {
       try {
         // Remove "--quiet" to see Cppcheck output even if no issues are found
-        cppcheckResult = await execPromise(`cppcheck --enable=all ${tempDir}`);
+        try {
+  const { stdout, stderr } = await execPromise(`cppcheck --enable=all ${tempDir}`);     
+  cppcheckResult = `${stdout || ""}${stderr || ""}`.trim();
+ // Capture both standard output and errors
+} catch (e) {
+  cppcheckResult = e.stdout || e.stderr || e.message; // Ensure full error logging      
+}
+
       } catch (e) {
         cppcheckResult = e.stdout || e.message;
       }
@@ -289,7 +296,7 @@ const runStaticAnalysis = async (req, res) => {
       reports: [
         { tool: "Bandit", result: banditResult.trim() || "No issues found." },
         { tool: "Flake8", result: flake8Result.trim() || "No issues found." },
-        { tool: "Cppcheck", result: cppcheckResult.trim() || "No issues found." },
+        { tool: "Cppcheck", result: cppcheckResult.trim() || "No issues found." },      
       ],
     };
     console.log("Sending analysis results to frontend:", analysisResults);
@@ -312,4 +319,3 @@ module.exports = {
     mergePR,
     runStaticAnalysis,
 };
-
