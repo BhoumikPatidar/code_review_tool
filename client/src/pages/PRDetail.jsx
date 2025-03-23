@@ -2,12 +2,10 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../utils/api';
-import StaticAnalysisReport from './StaticAnalysisReport';
 
 function PRDetail() {
   const { id } = useParams(); // PR ID from the URL
   const [pr, setPr] = useState(null);
-  const [analysisReports, setAnalysisReports] = useState(null);
   const [commits, setCommits] = useState([]);
   const [selectedCommit, setSelectedCommit] = useState(null);
   const [diff, setDiff] = useState(null);
@@ -15,8 +13,6 @@ function PRDetail() {
   const [error, setError] = useState('');
   const [prComments, setPrComments] = useState([]);
   const [newComment, setNewComment] = useState('');
-  const [loadingAnalysis, setLoadingAnalysis] = useState(false);
-
 
   // Fetch PR details
   useEffect(() => {
@@ -93,20 +89,6 @@ function PRDetail() {
     }
   };
 
-  // Trigger static analysis and update state with results
-  const handleRunStaticAnalysis = async () => {
-    setLoadingAnalysis(true);
-    setError('');
-    try {
-      const { data } = await api.post(`/prs/${id}/static-analysis`);
-      setAnalysisReports(data.reports);
-    } catch (err) {
-      console.error("Failed to run static analysis:", err);
-      setError(err.response?.data?.error || "Failed to run static analysis");
-    }
-    setLoadingAnalysis(false);
-  };
-
   return (
     <div style={{ padding: '2rem' }}>
       <h2>Pull Request Details</h2>
@@ -116,9 +98,10 @@ function PRDetail() {
           <h3>{pr.title}</h3>
           <p>{pr.description}</p>
           <p>
-            <strong>Repository:</strong> {pr.repository} |{' '}
-            <strong>Source Branch:</strong> {pr.sourceBranch} |{' '}
-            <strong>Target Branch:</strong> {pr.targetBranch}
+            <strong>Repository:</strong> {pr.repository}
+          </p>
+          <p>
+            <strong>Source Branch:</strong> {pr.sourceBranch} | <strong>Target Branch:</strong> {pr.targetBranch}
           </p>
           <p>
             <strong>Status:</strong> {pr.status}
@@ -153,6 +136,7 @@ function PRDetail() {
               ))}
             </div>
           )}
+
           <hr />
           <h3>PR Comments</h3>
           {prComments.length === 0 ? (
@@ -179,22 +163,6 @@ function PRDetail() {
             <br />
             <button type="submit">Post Comment</button>
           </form>
-          <hr />
-          <button onClick={handleRunStaticAnalysis}>
-            {loadingAnalysis ? "Running Static Analysis..." : "Run Static Analysis"}
-          </button>
-          {analysisReports && (
-            <div style={{ marginTop: '1rem' }}>
-              <h3>Static Analysis Report</h3>
-              {analysisReports.map((report, index) => (
-                <div key={index} style={{ border: '1px solid #ccc', marginBottom: '1rem', padding: '0.5rem' }}>
-                  <h4>{report.tool}</h4>
-                  <pre>{report.result}</pre>
-                </div>
-              ))}
-            </div>
-          )}
-          <StaticAnalysisReport prId={id} />
         </div>
       ) : (
         <p>Loading PR details...</p>

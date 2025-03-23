@@ -12,13 +12,11 @@ import PRDetail from './pages/PRDetail'; // Import the new detailed PR view
 import SshKeyUpdate from './pages/SshKeyUpdate'; // New import
 
 
-
 function App() {
   return (
     <div style={{ width: '100%' }}>
       <Header />
       <Routes>
-        <Route path="/prs/:id" element={<PRDetail />} />
         <Route path="/" element={<Home />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/login" element={<Login />} />
