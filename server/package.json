@@ -19,6 +19,7 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.10.0",
     "mysql2": "^3.12.0",
+    "nodegit": "^0.27.0",
     "pg": "^8.x",
     "pg-hstore": "^2.x",
     "sequelize": "^6.x"
