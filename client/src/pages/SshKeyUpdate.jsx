@@ -1,15 +1,16 @@
 // src/pages/SshKeyUpdate.jsx
-import React, { useState } from 'react';
-import api from '../utils/api';
+import React, { useState } from "react";
+import api from "../utils/api";
+import { TextField } from "@mui/material";
 
 function SshKeyUpdate() {
-  const [publicKey, setPublicKey] = useState('');
-  const [message, setMessage] = useState('');
+  const [publicKey, setPublicKey] = useState("");
+  const [message, setMessage] = useState("");
 
   const handleUpdate = async (e) => {
     e.preventDefault();
     try {
-      const { data } = await api.post('/user/sshkey', { publicKey });
+      const { data } = await api.post("/user/sshkey", { publicKey });
       setMessage(data.message);
     } catch (error) {
       console.error("Error updating SSH key:", error);
@@ -18,18 +19,20 @@ function SshKeyUpdate() {
   };
 
   return (
-    <div style={{ padding: '2rem' }}>
+    <div style={{ padding: "2rem" }}>
       <h2>Update Your SSH Public Key</h2>
       {message && <p>{message}</p>}
       <form onSubmit={handleUpdate}>
-        <textarea
-          placeholder="Paste your SSH public key here"
+        <TextField
+          multiline
+          label="Paste your SSH public key here"
           value={publicKey}
           onChange={(e) => setPublicKey(e.target.value)}
           rows="4"
-          cols="50"
           required
+          style={{ width: "25%" }}
         />
+        <br />
         <br />
         <button type="submit">Update SSH Key</button>
       </form>
