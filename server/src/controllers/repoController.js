@@ -60,6 +60,62 @@ async function createRepo(req, res) {
  * Get the commit history for a specified repository.
  * Expects the repository name in req.params.repoName.
  */
+// async function getCommits(req, res) {
+//   const repoName = req.params.repoName;
+//   const repoPath = path.join(REPO_BASE_PATH, repoName);
+
+//   try {
+//     const repo = await NodeGit.Repository.open(repoPath);
+//     let headCommit;
+
+//     // Try to get the HEAD commit.
+//     try {
+//       // headCommit = await repo.getHeadCommit();
+//       const branchName = (await repo.getCurrentBranch()).shorthand();
+//       headCommit = await repo.getBranchCommit(branchName);
+//     } catch (e) {
+//       console.warn("getHeadCommit failed:", e.message);
+//       headCommit = null;
+//     }
+
+//     // If no HEAD, try to get the commit from the 'main' branch.
+//     if (!headCommit) {
+//       try {
+//         headCommit = await repo.getBranchCommit('main');
+//       } catch (e) {
+//         console.warn("getBranchCommit('main') failed:", e.message);
+//         return res.json({ commits: [] });
+//       }
+//     }
+
+//     let commits = [];
+//     const history = headCommit.history();
+
+//     history.on("commit", commit => {
+//       commits.push({
+//         sha: commit.sha(),
+//         message: commit.message().trim(),
+//         author: commit.author().name(),
+//         date: commit.date()
+//       });
+//     });
+
+//     history.on("end", () => {
+//       res.json({ commits });
+//     });
+
+//     history.on("error", err => {
+//       console.error("Error reading commit history:", err);
+//       res.status(500).json({ error: "Error reading commit history" });
+//     });
+
+//     history.start();
+//   } catch (err) {
+//     console.error("Error opening repository:", err);
+//     res.status(500).json({ error: "Error opening repository" });
+//   }
+// }
+
 async function getCommits(req, res) {
   const repoName = req.params.repoName;
   const repoPath = path.join(REPO_BASE_PATH, repoName);
@@ -70,7 +126,6 @@ async function getCommits(req, res) {
 
     // Try to get the HEAD commit.
     try {
-      // headCommit = await repo.getHeadCommit();
       const branchName = (await repo.getCurrentBranch()).shorthand();
       headCommit = await repo.getBranchCommit(branchName);
     } catch (e) {
@@ -111,7 +166,7 @@ async function getCommits(req, res) {
 
     history.start();
   } catch (err) {
-    console.error("Error opening repository:", err);
+    console.error("Error opening repository:", err.message); // Add this line here
     res.status(500).json({ error: "Error opening repository" });
   }
 }
