@@ -27,6 +27,35 @@ async function listRepos(req, res) {
  * Create a new repository.
  * Expects a JSON body with: { name: "myproject" } (the tool will append .git if missing)
  */
+// async function createRepo(req, res) {
+//   try {
+//     const { name } = req.body;
+//     if (!name) {
+//       return res.status(400).json({ error: "Repository name is required" });
+//     }
+//     // Ensure repository name ends with .git
+//     const repoName = name.endsWith('.git') ? name : `${name}.git`;
+//     const newRepoPath = path.join(REPO_BASE_PATH, repoName);
+    
+//     // Check if repository already exists
+//     try {
+//       await fs.access(newRepoPath);
+//       return res.status(400).json({ error: "Repository already exists" });
+//     } catch (err) {
+//       // Repository doesn't exist; continue to create.
+//     }
+    
+//     console.log("Creating repository at:", newRepoPath);
+//     // Create a bare repository (isBare = 1)
+//     const repo = await NodeGit.Repository.init(newRepoPath, 1);
+//     console.log("Repository created at:", repo.path());
+//     res.json({ message: "Repository created successfully", repository: repoName });
+//   } catch (error) {
+//     console.error("Error creating repository:", error);
+//     res.status(500).json({ error: error.message });
+//   }
+// }
+
 async function createRepo(req, res) {
   try {
     const { name } = req.body;
@@ -36,7 +65,7 @@ async function createRepo(req, res) {
     // Ensure repository name ends with .git
     const repoName = name.endsWith('.git') ? name : `${name}.git`;
     const newRepoPath = path.join(REPO_BASE_PATH, repoName);
-    
+
     // Check if repository already exists
     try {
       await fs.access(newRepoPath);
@@ -44,7 +73,7 @@ async function createRepo(req, res) {
     } catch (err) {
       // Repository doesn't exist; continue to create.
     }
-    
+
     console.log("Creating repository at:", newRepoPath);
     // Create a bare repository (isBare = 1)
     const repo = await NodeGit.Repository.init(newRepoPath, 1);
@@ -118,8 +147,10 @@ async function createRepo(req, res) {
 
 async function getCommits(req, res) {
   const repoName = req.params.repoName;
-  const repoPath = path.join(REPO_BASE_PATH, repoName);
+  const repoPath = path.join(REPO_BASE_PATH, repoName.endsWith('.git') ? repoName : `${repoName}.git`);
+
   console.log("Attempting to open repository at path:", repoPath);
+
   try {
     const repo = await NodeGit.Repository.open(repoPath);
     let headCommit;
@@ -166,7 +197,7 @@ async function getCommits(req, res) {
 
     history.start();
   } catch (err) {
-    console.error("Error opening repository:", err.message); // Add this line here
+    console.error("Error opening repository:", err.message);
     res.status(500).json({ error: "Error opening repository" });
   }
 }
