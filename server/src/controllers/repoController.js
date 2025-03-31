@@ -70,7 +70,9 @@ async function getCommits(req, res) {
 
     // Try to get the HEAD commit.
     try {
-      headCommit = await repo.getHeadCommit();
+      // headCommit = await repo.getHeadCommit();
+      const branchName = (await repo.getCurrentBranch()).shorthand();
+      headCommit = await repo.getBranchCommit(branchName);
     } catch (e) {
       console.warn("getHeadCommit failed:", e.message);
       headCommit = null;
