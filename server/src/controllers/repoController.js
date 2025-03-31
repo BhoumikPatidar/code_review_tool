@@ -119,7 +119,7 @@ async function createRepo(req, res) {
 async function getCommits(req, res) {
   const repoName = req.params.repoName;
   const repoPath = path.join(REPO_BASE_PATH, repoName);
-
+  console.log("Attempting to open repository at path:", repoPath);
   try {
     const repo = await NodeGit.Repository.open(repoPath);
     let headCommit;
