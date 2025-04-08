@@ -12,7 +12,7 @@ const REPO_BASE_PATH = "/var/lib/git";
  */
 async function listRepos(req, res) {
   try {
-    const files = await fs.promises.readdir(REPO_BASE_PATH, { withFileTypes: true });
+    const files = await fs.readdir(REPO_BASE_PATH, { withFileTypes: true });
     const repos = files
       .filter(file => file.isDirectory())
       .map(dir => ({ name: dir.name }));
