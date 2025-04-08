@@ -1,7 +1,7 @@
 // server/src/controllers/repoController.js
 const NodeGit = require("nodegit");
 const path = require("path");
-const fs = require("fs-extra"); // using fs-extra for convenience
+const fs = require("fs").promises; 
 const PullRequest = require("../models/PullRequest");
 
 // Define the base directory where your repositories are located
