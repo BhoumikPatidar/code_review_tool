@@ -2,6 +2,7 @@
 const NodeGit = require("nodegit");
 const path = require("path");
 const fs = require('fs');
+const os = require('os');
 const PullRequest = require("../models/PullRequest");
 
 // Define the base directory where your repositories are located
@@ -12,29 +13,47 @@ const REPO_BASE_PATH = "/var/lib/git";
  */
 async function listRepos(req, res) {
   try {
-    // Check if directory exists
-    if (!fs.existsSync(REPO_BASE_PATH)) {
-      // Create directory if it doesn't exist
-      fs.mkdirSync(REPO_BASE_PATH, { recursive: true });
-      console.log("Created repository base directory:", REPO_BASE_PATH);
+    // Add debug logging
+    console.log("Current user:", require('os').userInfo().username);
+    console.log("Checking directory:", REPO_BASE_PATH);
+
+    // Try to access the directory first
+    try {
+      await fs.promises.access(REPO_BASE_PATH, fs.constants.R_OK);
+    } catch (err) {
+      console.error("Directory access error:", err);
+      return res.status(500).json({ 
+        error: "Cannot access git repository directory",
+        details: err.message
+      });
     }
 
-    // Read directory contents synchronously 
-    const files = fs.readdirSync(REPO_BASE_PATH);
+    // Read directory contents using promises
+    const files = await fs.promises.readdir(REPO_BASE_PATH);
     const repos = [];
 
     // Check each entry
     for (const file of files) {
       const fullPath = path.join(REPO_BASE_PATH, file);
-      if (fs.statSync(fullPath).isDirectory()) {
-        repos.push({ name: file });
+      try {
+        const stats = await fs.promises.stat(fullPath);
+        if (stats.isDirectory()) {
+          repos.push({ name: file });
+        }
+      } catch (err) {
+        console.warn(`Skipping ${file} due to error:`, err.message);
       }
     }
 
+    console.log("Found repositories:", repos);
     res.json({ repositories: repos });
   } catch (err) {
     console.error("Error listing repositories:", err);
-    res.status(500).json({ error: "Error listing repositories" });
+    res.status(500).json({ 
+      error: "Error listing repositories",
+      details: err.message,
+      path: REPO_BASE_PATH
+    });
   }
 }
 
