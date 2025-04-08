@@ -12,7 +12,12 @@ const REPO_BASE_PATH = "/var/lib/git";
  */
 async function listRepos(req, res) {
   try {
-    console.log("REPO_BASE_PATH:", REPO_BASE_PATH); // Debug log
+    const dirExists = await fs.access(REPO_BASE_PATH).then(() => true).catch(() => false);
+    if (!dirExists) {
+      console.error("Directory does not exist:", REPO_BASE_PATH);
+      return res.status(500).json({ error: "Repository base path does not exist" });
+    }
+
     const files = await fs.readdir(REPO_BASE_PATH, { withFileTypes: true });
     const repos = files
       .filter(file => file.isDirectory())
