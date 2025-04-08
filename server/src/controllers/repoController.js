@@ -13,46 +13,50 @@ const REPO_BASE_PATH = "/var/lib/git";
  */
 async function listRepos(req, res) {
   try {
-    // Add debug logging
-    console.log("Current user:", require('os').userInfo().username);
     console.log("Checking directory:", REPO_BASE_PATH);
 
-    // Try to access the directory first
-    try {
-      await fs.promises.access(REPO_BASE_PATH, fs.constants.R_OK);
-    } catch (err) {
-      console.error("Directory access error:", err);
-      return res.status(500).json({ 
-        error: "Cannot access git repository directory",
-        details: err.message
-      });
-    }
-
-    // Read directory contents using promises
-    const files = await fs.promises.readdir(REPO_BASE_PATH);
-    const repos = [];
-
-    // Check each entry
-    for (const file of files) {
-      const fullPath = path.join(REPO_BASE_PATH, file);
-      try {
-        const stats = await fs.promises.stat(fullPath);
-        if (stats.isDirectory()) {
-          repos.push({ name: file });
-        }
-      } catch (err) {
-        console.warn(`Skipping ${file} due to error:`, err.message);
+    // Use callback version of readdir
+    fs.readdir(REPO_BASE_PATH, (err, files) => {
+      if (err) {
+        console.error("Error reading directory:", err);
+        return res.status(500).json({ 
+          error: "Error reading directory",
+          details: err.message 
+        });
       }
-    }
 
-    console.log("Found repositories:", repos);
-    res.json({ repositories: repos });
+      const repos = [];
+      let processed = 0;
+
+      // Handle empty directory case
+      if (files.length === 0) {
+        return res.json({ repositories: [] });
+      }
+
+      // Process each file
+      files.forEach(file => {
+        const fullPath = path.join(REPO_BASE_PATH, file);
+        
+        fs.stat(fullPath, (err, stats) => {
+          processed++;
+          
+          if (!err && stats.isDirectory()) {
+            repos.push({ name: file });
+          }
+
+          // When all files are processed, send response
+          if (processed === files.length) {
+            console.log("Found repositories:", repos);
+            res.json({ repositories: repos });
+          }
+        });
+      });
+    });
   } catch (err) {
-    console.error("Error listing repositories:", err);
+    console.error("Error in listRepos:", err);
     res.status(500).json({ 
       error: "Error listing repositories",
-      details: err.message,
-      path: REPO_BASE_PATH
+      details: err.message 
     });
   }
 }
