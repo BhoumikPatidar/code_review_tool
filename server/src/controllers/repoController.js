@@ -258,4 +258,78 @@ async function getDiff(req, res) {
   }
 }
 
-module.exports = { listRepos, createRepo, getCommits, getDiff };
+async function getRepoTree(req, res) {
+  const repoName = req.params.repoName;
+  const queryPath = req.query.path || ''; // relative path in the repo
+  try {
+    const actualRepoName = repoName.endsWith('.git') ? repoName : `${repoName}.git`;
+    const repoPath = path.join(REPO_BASE_PATH, actualRepoName);
+    const repo = await NodeGit.Repository.open(repoPath);
+    // Get HEAD commit (try current branch first)
+    let headCommit;
+    try {
+      const branchName = (await repo.getCurrentBranch()).shorthand();
+      headCommit = await repo.getBranchCommit(branchName);
+    } catch (e) {
+      headCommit = await repo.getBranchCommit('main');
+    }
+    const tree = await headCommit.getTree();
+    let targetTree = tree;
+    if (queryPath) {
+      try {
+        const entry = tree.entryByPath(queryPath);
+        if (entry.isTree()) {
+          targetTree = await entry.getTree();
+        } else {
+          return res.status(400).json({ error: "The provided path points to a file, not a directory" });
+        }
+      } catch (err) {
+        console.error("Error getting subtree:", err);
+        return res.status(400).json({ error: "Invalid path" });
+      }
+    }
+    const entries = [];
+    targetTree.entries().forEach(entry => {
+      entries.push({
+        name: entry.name(),
+        type: entry.isFile() ? 'file' : entry.isDirectory() ? 'directory' : 'other',
+        sha: entry.sha()
+      });
+    });
+    res.json({ path: queryPath, entries });
+  } catch(err) {
+    console.error("Error getting repository tree:", err);
+    res.status(500).json({ error: "Error getting repository tree" });
+  }
+}
+
+async function getFileContent(req, res) {
+  const repoName = req.params.repoName;
+  const filePath = req.query.path;
+  if (!filePath)
+    return res.status(400).json({ error: "File path is required" });
+  try {
+    const actualRepoName = repoName.endsWith('.git') ? repoName : `${repoName}.git`;
+    const repoPath = path.join(REPO_BASE_PATH, actualRepoName);
+    const repo = await NodeGit.Repository.open(repoPath);
+    let headCommit;
+    try {
+      const branchName = (await repo.getCurrentBranch()).shorthand();
+      headCommit = await repo.getBranchCommit(branchName);
+    } catch (e) {
+      headCommit = await repo.getBranchCommit('main');
+    }
+    const tree = await headCommit.getTree();
+    const entry = tree.entryByPath(filePath);
+    if (!entry.isFile())
+      return res.status(400).json({ error: "The provided path is not a file" });
+    const blob = await entry.getBlob();
+    res.json({ path: filePath, content: blob.toString() });
+  } catch(err) {
+    console.error("Error getting file content:", err);
+    res.status(500).json({ error: "Error getting file content" });
+  }
+}
+
+
+module.exports = { listRepos, createRepo, getCommits, getDiff, getRepoTree, getFileContent };
