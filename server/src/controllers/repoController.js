@@ -1,7 +1,7 @@
 // server/src/controllers/repoController.js
 const NodeGit = require("nodegit");
 const path = require("path");
-const fs = require("fs").promises;
+const fs = require('fs/promises');
 const PullRequest = require("../models/PullRequest");
 
 // Define the base directory where your repositories are located
@@ -12,10 +12,11 @@ const REPO_BASE_PATH = "/var/lib/git";
  */
 async function listRepos(req, res) {
   try {
-    const dirExists = await fs.access(REPO_BASE_PATH).then(() => true).catch(() => false);
-    if (!dirExists) {
-      console.error("Directory does not exist:", REPO_BASE_PATH);
-      return res.status(500).json({ error: "Repository base path does not exist" });
+    try {
+      await fs.access(REPO_BASE_PATH);
+    } catch {
+      await fs.mkdir(REPO_BASE_PATH, { recursive: true });
+      console.log("Created repository base directory:", REPO_BASE_PATH);
     }
 
     const files = await fs.readdir(REPO_BASE_PATH, { withFileTypes: true });
