@@ -79,6 +79,29 @@ async function listRepos(req, res) {
 //   }
 // }
 
+
+async function getBranches(req, res) {
+  const repoName = req.params.repoName;
+  try {
+    const actualRepoName = repoName.endsWith('.git') ? repoName : `${repoName}.git`;
+    const repoPath = path.join(REPO_BASE_PATH, actualRepoName);
+    const repo = await NodeGit.Repository.open(repoPath);
+    
+    const references = await repo.getReferences(NodeGit.Reference.TYPE.LISTALL);
+    const branches = references
+      .filter(ref => ref.isBranch())
+      .map(ref => ({
+        name: ref.shorthand(),
+        isHead: ref.isHead()
+      }));
+
+    res.json({ branches });
+  } catch(err) {
+    console.error("Error getting branches:", err);
+    res.status(500).json({ error: "Error getting branches" });
+  }
+}
+
 async function createRepo(req, res) {
   try {
     const { name } = req.body;
@@ -284,18 +307,20 @@ async function getDiff(req, res) {
 async function getRepoTree(req, res) {
   const repoName = req.params.repoName;
   const queryPath = req.query.path || ''; // relative path in the repo
+  const branch = req.query.branch || 'main';
   try {
     const actualRepoName = repoName.endsWith('.git') ? repoName : `${repoName}.git`;
     const repoPath = path.join(REPO_BASE_PATH, actualRepoName);
     const repo = await NodeGit.Repository.open(repoPath);
     // Get HEAD commit (try current branch first)
-    let headCommit;
-    try {
-      const branchName = (await repo.getCurrentBranch()).shorthand();
-      headCommit = await repo.getBranchCommit(branchName);
-    } catch (e) {
-      headCommit = await repo.getBranchCommit('main');
-    }
+    // let headCommit;
+    // try {
+    //   const branchName = (await repo.getCurrentBranch()).shorthand();
+    //   headCommit = await repo.getBranchCommit(branchName);
+    // } catch (e) {
+    //   headCommit = await repo.getBranchCommit('main');
+    // }
+    const headCommit = await repo.getBranchCommit(branch);
     const tree = await headCommit.getTree();
     let targetTree = tree;
     if (queryPath) {
@@ -329,6 +354,7 @@ async function getRepoTree(req, res) {
 async function getFileContent(req, res) {
   const repoName = req.params.repoName;
   const filePath = req.query.path;
+  const branch = req.query.branch || 'main';
 
   if (!filePath) {
     return res.status(400).json({ error: "File path is required" });
@@ -340,13 +366,14 @@ async function getFileContent(req, res) {
     const repo = await NodeGit.Repository.open(repoPath);
 
     // Get the current branch's head commit
-    let headCommit;
-    try {
-      const branchName = (await repo.getCurrentBranch()).shorthand();
-      headCommit = await repo.getBranchCommit(branchName);
-    } catch (e) {
-      headCommit = await repo.getBranchCommit('main');
-    }
+    // let headCommit;
+    // try {
+    //   const branchName = (await repo.getCurrentBranch()).shorthand();
+    //   headCommit = await repo.getBranchCommit(branchName);
+    // } catch (e) {
+    //   headCommit = await repo.getBranchCommit('main');
+    // }
+    const headCommit = await repo.getBranchCommit(branch);
 
     const tree = await headCommit.getTree();
     const entry = await tree.getEntry(filePath);
@@ -371,4 +398,4 @@ async function getFileContent(req, res) {
   }
 }
 
-module.exports = { listRepos, createRepo, getCommits, getDiff, getRepoTree, getFileContent };
+module.exports = { listRepos, createRepo, getCommits, getDiff, getRepoTree, getFileContent, getBranches };
