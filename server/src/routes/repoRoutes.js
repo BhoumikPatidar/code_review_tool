@@ -6,7 +6,8 @@ const {
   getCommits, 
   getDiff,
   getRepoTree,
-  getFileContent
+  getFileContent,
+  getBranches
 } = require("../controllers/repoController");
 const authMiddleware = require("../middleware/authMiddleware");
 
