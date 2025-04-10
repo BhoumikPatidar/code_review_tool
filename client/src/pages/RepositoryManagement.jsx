@@ -12,10 +12,12 @@ function RepositoryManagement() {
   const fetchRepos = async () => {
     try {
       const { data } = await api.get("/repos");
-      setRepos(data.repositories);
+      setRepos(data.repositories || []);
+      setMessage(""); // Clear any previous error messages
     } catch (error) {
       console.error("Error fetching repositories:", error);
-      setMessage("Error fetching repositories");
+      setMessage(error.response?.data?.error || "Error fetching repositories");
+      setRepos([]); // Reset repos on error
     }
   };
 

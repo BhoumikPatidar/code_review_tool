@@ -15,43 +15,29 @@ async function listRepos(req, res) {
   try {
     console.log("Checking directory:", REPO_BASE_PATH);
 
-    // Use callback version of readdir
-    fs.readdir(REPO_BASE_PATH, (err, files) => {
-      if (err) {
-        console.error("Error reading directory:", err);
-        return res.status(500).json({ 
-          error: "Error reading directory",
-          details: err.message 
-        });
+    // First check if directory exists
+    if (!fs.existsSync(REPO_BASE_PATH)) {
+      console.log("Creating base directory");
+      fs.mkdirSync(REPO_BASE_PATH, { recursive: true });
+    }
+
+    // Read directory synchronously
+    const files = fs.readdirSync(REPO_BASE_PATH);
+    const repos = [];
+
+    // Process each file synchronously
+    for (const file of files) {
+      const fullPath = path.join(REPO_BASE_PATH, file);
+      const stats = fs.statSync(fullPath);
+      
+      if (stats.isDirectory()) {
+        repos.push({ name: file });
       }
+    }
 
-      const repos = [];
-      let processed = 0;
+    console.log("Found repositories:", repos);
+    res.json({ repositories: repos });
 
-      // Handle empty directory case
-      if (files.length === 0) {
-        return res.json({ repositories: [] });
-      }
-
-      // Process each file
-      files.forEach(file => {
-        const fullPath = path.join(REPO_BASE_PATH, file);
-        
-        fs.stat(fullPath, (err, stats) => {
-          processed++;
-          
-          if (!err && stats.isDirectory()) {
-            repos.push({ name: file });
-          }
-
-          // When all files are processed, send response
-          if (processed === files.length) {
-            console.log("Found repositories:", repos);
-            res.json({ repositories: repos });
-          }
-        });
-      });
-    });
   } catch (err) {
     console.error("Error in listRepos:", err);
     res.status(500).json({ 
@@ -60,7 +46,6 @@ async function listRepos(req, res) {
     });
   }
 }
-
 /**
  * Create a new repository.
  * Expects a JSON body with: { name: "myproject" } (the tool will append .git if missing)
