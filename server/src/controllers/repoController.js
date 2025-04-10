@@ -86,36 +86,38 @@ async function getBranches(req, res) {
     const actualRepoName = repoName.endsWith('.git') ? repoName : `${repoName}.git`;
     const repoPath = path.join(REPO_BASE_PATH, actualRepoName);
     const repo = await NodeGit.Repository.open(repoPath);
-    
-    // Fix: Use proper callback function for getReferences
+
+    // Get all references with proper callback
     const references = await new Promise((resolve, reject) => {
-      const callback = function(error, arrayOfRefs) {
-        if (error) reject(error);
-        else resolve(arrayOfRefs);
-      };
-      repo.getReferences(NodeGit.Reference.TYPE.ALL, callback);
+      repo.getReferences(NodeGit.Reference.TYPE.ALL, function(err, refs) {
+        if (err) {
+          console.error("Error getting references:", err);
+          reject(err);
+        } else {
+          resolve(refs);
+        }
+      });
     });
 
-    // Process only local branches
-    const branches = [];
-    for (const ref of references) {
-      if (ref.isBranch() && ref.isLocal()) {
+    // Process local branches
+    const branches = references
+      .filter(ref => ref.isBranch())
+      .map(ref => {
         try {
-          const shorthand = ref.shorthand();
-          branches.push({
-            name: shorthand,
-            isHead: ref.isHead(),
-            target: ref.target().toString()
-          });
+          return {
+            name: ref.shorthand(),
+            isHead: ref.isHead()
+          };
         } catch (err) {
-          console.warn(`Skipping branch ${ref.name()}: ${err.message}`);
-          continue;
+          console.warn(`Error processing branch ${ref.name()}: ${err.message}`);
+          return null;
         }
-      }
-    }
+      })
+      .filter(Boolean); // Remove any null entries
 
     console.log("Found branches:", branches);
     res.json({ branches });
+
   } catch(err) {
     console.error("Error getting branches:", err);
     res.status(500).json({ 

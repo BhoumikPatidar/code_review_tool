@@ -14,46 +14,61 @@ function RepoExplorer() {
   const [currentBranch, setCurrentBranch] = useState(searchParams.get("branch") || "main");
 
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
+    const fetchBranches = async () => {
       try {
-        // First try to get branches
-        const branchesResponse = await api.get(`/repos/${repoName}/branches`);
-        const branchesData = branchesResponse.data.branches;
-        setBranches(branchesData);
-
-        // If we got branches, use the first one or HEAD if no branch was specified
-        if (!currentBranch && branchesData.length > 0) {
-          const defaultBranch = branchesData.find(b => b.isHead)?.name || branchesData[0].name;
+        const response = await api.get(`/repos/${repoName}/branches`);
+        console.log("Branches response:", response.data);
+        setBranches(response.data.branches || []);
+        
+        // Set default branch if none selected
+        if (!currentBranch && response.data.branches?.length > 0) {
+          const defaultBranch = response.data.branches.find(b => b.isHead)?.name || response.data.branches[0].name;
           setCurrentBranch(defaultBranch);
         }
+      } catch (err) {
+        console.error("Error fetching branches:", err);
+        setError("Failed to load branches");
+      }
+    };
 
-        // Get tree contents
+    fetchBranches();
+  }, [repoName]);
+
+  // Fetch tree contents when branch changes
+  useEffect(() => {
+    const fetchTree = async () => {
+      if (!currentBranch) return;
+      
+      setLoading(true);
+      try {
         const { data } = await api.get(`/repos/${repoName}/tree`, {
           params: { 
             path: currentPath,
-            branch: currentBranch || 'main'
+            branch: currentBranch
           }
         });
         setTree(data);
         setError("");
       } catch (err) {
-        console.error("Error:", err);
-        setError(err.response?.data?.error || "Failed to load repository contents");
+        console.error("Error fetching tree:", err);
+        setError(err.response?.data?.error || "Error fetching repository contents");
       } finally {
         setLoading(false);
       }
     };
 
-    fetchData();
+    fetchTree();
   }, [repoName, currentPath, currentBranch]);
 
+  // Handle branch change
+  const handleBranchChange = (event) => {
+    const newBranch = event.target.value;
+    setCurrentBranch(newBranch);
+    setSearchParams({ path: currentPath, branch: newBranch });
+  };
+
   if (loading) {
-    return (
-      <div style={{ padding: "2rem" }}>
-        <h2>Loading repository contents...</h2>
-      </div>
-    );
+    return <div>Loading...</div>;
   }
 
   if (error) {
