@@ -329,12 +329,17 @@ async function getRepoTree(req, res) {
 async function getFileContent(req, res) {
   const repoName = req.params.repoName;
   const filePath = req.query.path;
-  if (!filePath)
+
+  if (!filePath) {
     return res.status(400).json({ error: "File path is required" });
+  }
+
   try {
     const actualRepoName = repoName.endsWith('.git') ? repoName : `${repoName}.git`;
     const repoPath = path.join(REPO_BASE_PATH, actualRepoName);
     const repo = await NodeGit.Repository.open(repoPath);
+
+    // Get the current branch's head commit
     let headCommit;
     try {
       const branchName = (await repo.getCurrentBranch()).shorthand();
@@ -342,17 +347,28 @@ async function getFileContent(req, res) {
     } catch (e) {
       headCommit = await repo.getBranchCommit('main');
     }
+
     const tree = await headCommit.getTree();
-    const entry = tree.entryByPath(filePath);
-    if (!entry.isFile())
+    const entry = await tree.getEntry(filePath);
+
+    if (!entry.isBlob()) {
       return res.status(400).json({ error: "The provided path is not a file" });
+    }
+
     const blob = await entry.getBlob();
-    res.json({ path: filePath, content: blob.toString() });
+    res.json({ 
+      path: filePath,
+      content: blob.toString(),
+      size: blob.rawsize()
+    });
+
   } catch(err) {
     console.error("Error getting file content:", err);
-    res.status(500).json({ error: "Error getting file content" });
+    res.status(500).json({ 
+      error: "Error getting file content",
+      details: err.message 
+    });
   }
 }
-
 
 module.exports = { listRepos, createRepo, getCommits, getDiff, getRepoTree, getFileContent };
