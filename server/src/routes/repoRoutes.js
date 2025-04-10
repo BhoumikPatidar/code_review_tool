@@ -6,9 +6,11 @@ const {
   getCommits, 
   getDiff,
   getRepoTree,
-  getFileContent 
+  getFileContent
 } = require("../controllers/repoController");
 const authMiddleware = require("../middleware/authMiddleware");
+
+router.get("/:repoName/branches", getBranches);
 
 // Endpoint to list all repositories
 router.get("/", listRepos);

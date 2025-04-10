@@ -282,26 +282,68 @@ async function getDiff(req, res) {
   }
 }
 
+// async function getRepoTree(req, res) {
+//   const repoName = req.params.repoName;
+//   const queryPath = req.query.path || ''; // relative path in the repo
+//   try {
+//     const actualRepoName = repoName.endsWith('.git') ? repoName : `${repoName}.git`;
+//     const repoPath = path.join(REPO_BASE_PATH, actualRepoName);
+//     const repo = await NodeGit.Repository.open(repoPath);
+//     // Get HEAD commit (try current branch first)
+//     let headCommit;
+//     try {
+//       const branchName = (await repo.getCurrentBranch()).shorthand();
+//       headCommit = await repo.getBranchCommit(branchName);
+//     } catch (e) {
+//       headCommit = await repo.getBranchCommit('main');
+//     }
+//     const tree = await headCommit.getTree();
+//     let targetTree = tree;
+//     if (queryPath) {
+//       try {
+//         const entry = tree.entryByPath(queryPath);
+//         if (entry.isTree()) {
+//           targetTree = await entry.getTree();
+//         } else {
+//           return res.status(400).json({ error: "The provided path points to a file, not a directory" });
+//         }
+//       } catch (err) {
+//         console.error("Error getting subtree:", err);
+//         return res.status(400).json({ error: "Invalid path" });
+//       }
+//     }
+//     const entries = [];
+//     targetTree.entries().forEach(entry => {
+//       entries.push({
+//         name: entry.name(),
+//         type: entry.isFile() ? 'file' : entry.isDirectory() ? 'directory' : 'other',
+//         sha: entry.sha()
+//       });
+//     });
+//     res.json({ path: queryPath, entries });
+//   } catch(err) {
+//     console.error("Error getting repository tree:", err);
+//     res.status(500).json({ error: "Error getting repository tree" });
+//   }
+// }
 async function getRepoTree(req, res) {
   const repoName = req.params.repoName;
-  const queryPath = req.query.path || ''; // relative path in the repo
+  const queryPath = req.query.path || '';
+  const branch = req.query.branch || 'main';
+
   try {
     const actualRepoName = repoName.endsWith('.git') ? repoName : `${repoName}.git`;
     const repoPath = path.join(REPO_BASE_PATH, actualRepoName);
     const repo = await NodeGit.Repository.open(repoPath);
-    // Get HEAD commit (try current branch first)
-    let headCommit;
-    try {
-      const branchName = (await repo.getCurrentBranch()).shorthand();
-      headCommit = await repo.getBranchCommit(branchName);
-    } catch (e) {
-      headCommit = await repo.getBranchCommit('main');
-    }
-    const tree = await headCommit.getTree();
+    
+    // Get specified branch commit
+    const commit = await repo.getBranchCommit(branch);
+    const tree = await commit.getTree();
+    
     let targetTree = tree;
     if (queryPath) {
       try {
-        const entry = tree.entryByPath(queryPath);
+        const entry = await tree.getEntry(queryPath);
         if (entry.isTree()) {
           targetTree = await entry.getTree();
         } else {
@@ -312,14 +354,16 @@ async function getRepoTree(req, res) {
         return res.status(400).json({ error: "Invalid path" });
       }
     }
+
     const entries = [];
     targetTree.entries().forEach(entry => {
       entries.push({
         name: entry.name(),
-        type: entry.isFile() ? 'file' : entry.isDirectory() ? 'directory' : 'other',
+        type: entry.isBlob() ? 'file' : 'directory',
         sha: entry.sha()
       });
     });
+
     res.json({ path: queryPath, entries });
   } catch(err) {
     console.error("Error getting repository tree:", err);
@@ -371,4 +415,29 @@ async function getFileContent(req, res) {
     });
   }
 }
-module.exports = { listRepos, createRepo, getCommits, getDiff, getRepoTree, getFileContent};
+
+// new
+async function getBranches(req, res) {
+  const repoName = req.params.repoName;
+  try {
+    const actualRepoName = repoName.endsWith('.git') ? repoName : `${repoName}.git`;
+    const repoPath = path.join(REPO_BASE_PATH, actualRepoName);
+    const repo = await NodeGit.Repository.open(repoPath);
+    
+    const refs = await repo.getReferences(NodeGit.Reference.TYPE.LISTALL);
+    const branches = refs
+      .filter(ref => ref.isBranch())
+      .map(ref => ({
+        name: ref.shorthand(),
+        isHead: ref.isHead()
+      }));
+    
+    res.json({ branches });
+  } catch(err) {
+    console.error("Error getting branches:", err);
+    res.status(500).json({ error: "Error getting branches" });
+  }
+}
+
+
+module.exports = { listRepos, createRepo, getCommits, getDiff, getRepoTree, getFileContent, getBranches};
