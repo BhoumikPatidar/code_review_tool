@@ -9,133 +9,112 @@ function RepoExplorer() {
   const currentPath = searchParams.get("path") || "";
   const [tree, setTree] = useState({ path: currentPath, entries: [] });
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
   const [branches, setBranches] = useState([]);
   const [currentBranch, setCurrentBranch] = useState(searchParams.get("branch") || "main");
 
-  const fetchBranches = async () => {
-    try {
-      const { data } = await api.get(`/repos/${repoName}/branches`);
-      setBranches(data.branches);
-      // If no branch is selected, select the HEAD branch or 'main'
-      if (!currentBranch) {
-        const headBranch = data.branches.find(b => b.isHead);
-        setCurrentBranch(headBranch?.name || 'main');
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        // First try to get branches
+        const branchesResponse = await api.get(`/repos/${repoName}/branches`);
+        const branchesData = branchesResponse.data.branches;
+        setBranches(branchesData);
+
+        // If we got branches, use the first one or HEAD if no branch was specified
+        if (!currentBranch && branchesData.length > 0) {
+          const defaultBranch = branchesData.find(b => b.isHead)?.name || branchesData[0].name;
+          setCurrentBranch(defaultBranch);
+        }
+
+        // Get tree contents
+        const { data } = await api.get(`/repos/${repoName}/tree`, {
+          params: { 
+            path: currentPath,
+            branch: currentBranch || 'main'
+          }
+        });
+        setTree(data);
+        setError("");
+      } catch (err) {
+        console.error("Error:", err);
+        setError(err.response?.data?.error || "Failed to load repository contents");
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      console.error("Error fetching branches:", err);
-      setError(err.response?.data?.error || "Error fetching branches");
-    }
-  };
+    };
 
-  const fetchTree = async () => {
-    try {
-      const { data } = await api.get(`/repos/${repoName}/tree`, {
-        params: { 
-          path: currentPath,
-          branch: currentBranch
-         }
-      });
-      setTree(data);
-      setError("");
-    } catch (err) {
-      console.error(err);
-      setError(err.response?.data?.error || "Error fetching repository contents");
-    }
-  };
-
-  useEffect(() => {
-    fetchBranches();
-  }, [repoName]);
-
-  useEffect(() => {
-    if (currentBranch) {
-      fetchTree();
-      setSearchParams({ path: currentPath, branch: currentBranch });
-    }
+    fetchData();
   }, [repoName, currentPath, currentBranch]);
 
-  const handleBranchChange = (event) => {
-    setCurrentBranch(event.target.value);
-  };
-
-  const renderBreadcrumbs = () => {
-    const parts = currentPath.split("/").filter(Boolean);
-    const crumbs = [{ label: "Root", path: "" }];
-    let accum = "";
-    parts.forEach(part => {
-      accum += "/" + part;
-      crumbs.push({ label: part, path: accum.slice(1) });
-    });
+  if (loading) {
     return (
-      <div style={{ marginBottom: "20px" }}>
-        {crumbs.map((crumb, idx) => (
-          <span key={idx}>
-            {idx > 0 && " / "}
-            <Link 
-              to={`/explore/${repoName}?path=${crumb.path}`}
-              style={{ color: "#0366d6" }}
-            >
-              {crumb.label}
-            </Link>
-          </span>
-        ))}
+      <div style={{ padding: "2rem" }}>
+        <h2>Loading repository contents...</h2>
       </div>
     );
-  };
+  }
+
+  if (error) {
+    return (
+      <div style={{ padding: "2rem" }}>
+        <h2>Error</h2>
+        <p style={{ color: "red" }}>{error}</p>
+        <button onClick={() => navigate("/repositories")}>
+          Back to Repositories
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div style={{ padding: "2rem" }}>
       <h2>Repository: {repoName}</h2>
-      {/* Branch Selection Dropdown */}
-      <div style={{ 
-        marginBottom: "20px",
-        display: "flex",
-        alignItems: "center",
-        gap: "10px"
-      }}>
-        <label htmlFor="branch-select">Branch:</label>
-        <select
-          id="branch-select"
-          value={currentBranch}
-          onChange={handleBranchChange}
-          style={{
-            padding: "8px",
-            borderRadius: "4px",
-            border: "1px solid #d1d5da",
-            backgroundColor: "#f6f8fa",
-            cursor: "pointer"
-          }}
-        >
-          {branches.map(branch => (
-            <option key={branch.name} value={branch.name}>
-              {branch.name} {branch.isHead ? '(HEAD)' : ''}
-            </option>
-          ))}
-        </select>
-      </div>
-      {renderBreadcrumbs()}
-      {error && <p style={{ color: "red" }}>{error}</p>}
+
+      {branches.length > 0 && (
+        <div style={{ marginBottom: "20px" }}>
+          <select
+            value={currentBranch}
+            onChange={(e) => setCurrentBranch(e.target.value)}
+            style={{
+              padding: "8px",
+              borderRadius: "4px",
+              border: "1px solid #d1d5da"
+            }}
+          >
+            {branches.map((branch) => (
+              <option key={branch.name} value={branch.name}>
+                {branch.name} {branch.isHead ? "(HEAD)" : ""}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
         {tree.entries.map((entry, index) => (
           <button
             key={index}
             onClick={() => {
+              const newPath = currentPath 
+                ? `${currentPath}/${entry.name}` 
+                : entry.name;
               if (entry.type === "directory") {
-                navigate(`/explore/${repoName}?path=${currentPath ? currentPath + "/" + entry.name : entry.name}`);
+                navigate(`/explore/${repoName}?path=${newPath}&branch=${currentBranch}`);
               } else {
-                navigate(`/view/${repoName}?path=${currentPath ? currentPath + "/" + entry.name : entry.name}`);
+                navigate(`/view/${repoName}?path=${newPath}&branch=${currentBranch}`);
               }
             }}
             style={{
-              padding: "8px 16px",
-              textAlign: "left",
-              cursor: "pointer",
-              backgroundColor: "#f6f8fa",
-              border: "1px solid #d1d5da",
-              borderRadius: "6px",
-              width: "fit-content",
               display: "flex",
               alignItems: "center",
+              padding: "8px 16px",
+              border: "1px solid #d1d5da",
+              borderRadius: "4px",
+              background: "white",
+              cursor: "pointer",
+              width: "fit-content",
               gap: "8px"
             }}
           >

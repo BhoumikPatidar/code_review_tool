@@ -306,26 +306,47 @@ async function getDiff(req, res) {
 
 async function getRepoTree(req, res) {
   const repoName = req.params.repoName;
-  const queryPath = req.query.path || ''; // relative path in the repo
+  const queryPath = req.query.path || '';
   const branch = req.query.branch || 'main';
+
   try {
     const actualRepoName = repoName.endsWith('.git') ? repoName : `${repoName}.git`;
     const repoPath = path.join(REPO_BASE_PATH, actualRepoName);
+    console.log("Opening repository at:", repoPath);
+    
     const repo = await NodeGit.Repository.open(repoPath);
-    // Get HEAD commit (try current branch first)
-    // let headCommit;
-    // try {
-    //   const branchName = (await repo.getCurrentBranch()).shorthand();
-    //   headCommit = await repo.getBranchCommit(branchName);
-    // } catch (e) {
-    //   headCommit = await repo.getBranchCommit('main');
-    // }
-    const headCommit = await repo.getBranchCommit(branch);
+    let headCommit;
+
+    // Try to get the specified branch, fallback to available branches if it fails
+    try {
+      headCommit = await repo.getBranchCommit(branch);
+    } catch (e) {
+      console.log("Failed to get specified branch:", branch);
+      // Try to get current branch
+      try {
+        const currentBranch = await repo.getCurrentBranch();
+        headCommit = await repo.getBranchCommit(currentBranch.shorthand());
+      } catch (e) {
+        console.log("Failed to get current branch, trying main/master");
+        // Try main or master
+        try {
+          headCommit = await repo.getBranchCommit('main');
+        } catch (e) {
+          try {
+            headCommit = await repo.getBranchCommit('master');
+          } catch (e) {
+            return res.status(404).json({ error: "No valid branch found" });
+          }
+        }
+      }
+    }
+
     const tree = await headCommit.getTree();
     let targetTree = tree;
+
     if (queryPath) {
       try {
-        const entry = tree.entryByPath(queryPath);
+        const entry = await tree.getEntry(queryPath);
         if (entry.isTree()) {
           targetTree = await entry.getTree();
         } else {
@@ -336,18 +357,28 @@ async function getRepoTree(req, res) {
         return res.status(400).json({ error: "Invalid path" });
       }
     }
+
     const entries = [];
-    targetTree.entries().forEach(entry => {
+    for (const entry of targetTree.entries()) {
       entries.push({
         name: entry.name(),
-        type: entry.isFile() ? 'file' : entry.isDirectory() ? 'directory' : 'other',
+        type: entry.isBlob() ? 'file' : 'directory',
         sha: entry.sha()
       });
+    }
+
+    res.json({ 
+      path: queryPath, 
+      entries,
+      currentBranch: branch 
     });
-    res.json({ path: queryPath, entries });
+
   } catch(err) {
     console.error("Error getting repository tree:", err);
-    res.status(500).json({ error: "Error getting repository tree" });
+    res.status(500).json({ 
+      error: "Error getting repository tree",
+      details: err.message 
+    });
   }
 }
 
