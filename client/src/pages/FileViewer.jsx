@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useSearchParams, Link } from "react-router-dom";
 import api from "../utils/api";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { vs } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 function FileViewer() {
   const { repoName } = useParams();
@@ -29,15 +30,47 @@ function FileViewer() {
 
   return (
     <div style={{ padding: "2rem" }}>
-      <h2>Viewing file: {filePath}</h2>
-      <Link to={`/explore/${repoName}?path=${filePath.substring(0, filePath.lastIndexOf("/"))}`}>
-        Back to folder
-      </Link>
+      <div style={{ marginBottom: "20px" }}>
+        <Link 
+          to={`/explore/${repoName}?path=${filePath.substring(0, filePath.lastIndexOf("/"))}`}
+          style={{
+            textDecoration: "none",
+            color: "#0366d6",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "4px"
+          }}
+        >
+          ← Back to folder
+        </Link>
+      </div>
+      
+      <h2 style={{ marginBottom: "20px" }}>
+        {filePath.split("/").pop()}
+        <span style={{ color: "#666", fontSize: "0.8em" }}> ({filePath})</span>
+      </h2>
+
       {error && <p style={{ color: "red" }}>{error}</p>}
+      
       {content && (
-        <SyntaxHighlighter language="javascript">
-          {content}
-        </SyntaxHighlighter>
+        <div style={{ 
+          border: "1px solid #d1d5da", 
+          borderRadius: "6px",
+          overflow: "hidden"
+        }}>
+          <SyntaxHighlighter 
+            language="javascript"
+            style={vs}
+            showLineNumbers={true}
+            customStyle={{
+              margin: 0,
+              padding: "16px",
+              backgroundColor: "#f6f8fa"
+            }}
+          >
+            {content}
+          </SyntaxHighlighter>
+        </div>
       )}
     </div>
   );
