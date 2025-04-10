@@ -87,22 +87,27 @@ async function getBranches(req, res) {
     const repoPath = path.join(REPO_BASE_PATH, actualRepoName);
     const repo = await NodeGit.Repository.open(repoPath);
     
-    // Use Reference.TYPE.ALL instead of LISTALL
+    // Get all references using the callback pattern
     const references = await new Promise((resolve, reject) => {
-      repo.getReferences(NodeGit.Reference.TYPE.ALL, (err, refs) => {
-        if (err) reject(err);
-        else resolve(refs);
+      repo.getReferences(NodeGit.Reference.TYPE.ALL, function(err, refs) {
+        if (err) {
+          reject(err);
+          return;
+        }
+        resolve(refs);
       });
     });
 
-    // Filter and map branches
+    // Filter and map local branches only
     const branches = references
-      .filter(ref => ref.isBranch())
+      .filter(ref => ref.isBranch() && ref.isLocal())
       .map(ref => ({
         name: ref.shorthand(),
-        isHead: ref.isHead()
+        isHead: ref.isHead(),
+        target: ref.target().toString()
       }));
 
+    console.log("Found branches:", branches);
     res.json({ branches });
   } catch(err) {
     console.error("Error getting branches:", err);
