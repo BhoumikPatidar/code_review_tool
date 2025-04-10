@@ -15,7 +15,6 @@ router.get("/:repoName/commits", getCommits);
 
 // Endpoint to get diff for a specific commit in a repository
 router.get("/:repoName/diff/:commitSha", getDiff);
-router.get("/:repoName/branches", getBranches);
 
 router.get("/:repoName/tree", getRepoTree);     // GET /repos/:repoName/tree?path={optional}
 router.get("/:repoName/file", getFileContent);    // GET /repos/:repoName/file?path={filePath}
