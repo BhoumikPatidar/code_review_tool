@@ -87,12 +87,13 @@ async function getBranches(req, res) {
     const repoPath = path.join(REPO_BASE_PATH, actualRepoName);
     const repo = await NodeGit.Repository.open(repoPath);
     
-    // Get all references with proper callback handling
+    // Fix: Use proper callback function for getReferences
     const references = await new Promise((resolve, reject) => {
-      repo.getReferences(NodeGit.Reference.TYPE.ALL, (error, arrayOfRefs) => {
+      const callback = function(error, arrayOfRefs) {
         if (error) reject(error);
         else resolve(arrayOfRefs);
-      });
+      };
+      repo.getReferences(NodeGit.Reference.TYPE.ALL, callback);
     });
 
     // Process only local branches
@@ -100,13 +101,15 @@ async function getBranches(req, res) {
     for (const ref of references) {
       if (ref.isBranch() && ref.isLocal()) {
         try {
+          const shorthand = ref.shorthand();
           branches.push({
-            name: ref.shorthand(),
+            name: shorthand,
             isHead: ref.isHead(),
             target: ref.target().toString()
           });
         } catch (err) {
           console.warn(`Skipping branch ${ref.name()}: ${err.message}`);
+          continue;
         }
       }
     }
