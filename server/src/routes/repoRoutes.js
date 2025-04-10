@@ -1,7 +1,7 @@
 // server/src/routes/repoRoutes.js
 const express = require("express");
 const router = express.Router();
-const { listRepos, getCommits, getDiff, createRepo } = require("../controllers/repoController");
+const { listRepos, getCommits, getDiff, createRepo, getRepoTree, getFileContent } = require("../controllers/repoController");
 const authMiddleware = require("../middleware/authMiddleware");
 
 // Endpoint to list all repositories
