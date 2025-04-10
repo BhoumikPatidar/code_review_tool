@@ -87,7 +87,15 @@ async function getBranches(req, res) {
     const repoPath = path.join(REPO_BASE_PATH, actualRepoName);
     const repo = await NodeGit.Repository.open(repoPath);
     
-    const references = await repo.getReferences(NodeGit.Reference.TYPE.LISTALL);
+    // Use Reference.TYPE.ALL instead of LISTALL
+    const references = await new Promise((resolve, reject) => {
+      repo.getReferences(NodeGit.Reference.TYPE.ALL, (err, refs) => {
+        if (err) reject(err);
+        else resolve(refs);
+      });
+    });
+
+    // Filter and map branches
     const branches = references
       .filter(ref => ref.isBranch())
       .map(ref => ({
@@ -98,7 +106,10 @@ async function getBranches(req, res) {
     res.json({ branches });
   } catch(err) {
     console.error("Error getting branches:", err);
-    res.status(500).json({ error: "Error getting branches" });
+    res.status(500).json({ 
+      error: "Error getting branches",
+      details: err.message 
+    });
   }
 }
 
