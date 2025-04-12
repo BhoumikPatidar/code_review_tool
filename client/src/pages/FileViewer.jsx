@@ -139,7 +139,7 @@ function FileViewer() {
           params: {
             commit1: selectedCommit1,
             commit2: selectedCommit2,
-            filePath
+            filePath: filePath
           }
         });
         setDiff(data.diff);
