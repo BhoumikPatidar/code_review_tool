@@ -77,7 +77,65 @@ async function createRepo(req, res) {
   }
 }
 
+//old
+// async function getCommits(req, res) {
+//   const repoName = req.params.repoName;
+//   const repoPath = path.join(REPO_BASE_PATH, repoName.endsWith('.git') ? repoName : `${repoName}.git`);
 
+//   console.log("Attempting to open repository at path:", repoPath);
+
+//   try {
+//     const repo = await NodeGit.Repository.open(repoPath);
+//     let headCommit;
+
+//     // Try to get the HEAD commit.
+//     try {
+//       const branchName = (await repo.getCurrentBranch()).shorthand();
+//       headCommit = await repo.getBranchCommit(branchName);
+//     } catch (e) {
+//       console.warn("getHeadCommit failed:", e.message);
+//       headCommit = null;
+//     }
+
+//     // If no HEAD, try to get the commit from the 'main' branch.
+//     if (!headCommit) {
+//       try {
+//         headCommit = await repo.getBranchCommit('main');
+//       } catch (e) {
+//         console.warn("getBranchCommit('main') failed:", e.message);
+//         return res.json({ commits: [] });
+//       }
+//     }
+
+//     let commits = [];
+//     const history = headCommit.history();
+
+//     history.on("commit", commit => {
+//       commits.push({
+//         sha: commit.sha(),
+//         message: commit.message().trim(),
+//         author: commit.author().name(),
+//         date: commit.date()
+//       });
+//     });
+
+//     history.on("end", () => {
+//       res.json({ commits });
+//     });
+
+//     history.on("error", err => {
+//       console.error("Error reading commit history:", err);
+//       res.status(500).json({ error: "Error reading commit history" });
+//     });
+
+//     history.start();
+//   } catch (err) {
+//     console.error("Error opening repository:", err.message);
+//     res.status(500).json({ error: "Error opening repository" });
+//   }
+// }
+
+// new
 async function getCommits(req, res) {
   const repoName = req.params.repoName;
   const repoPath = path.join(REPO_BASE_PATH, repoName.endsWith('.git') ? repoName : `${repoName}.git`);
@@ -86,49 +144,41 @@ async function getCommits(req, res) {
 
   try {
     const repo = await NodeGit.Repository.open(repoPath);
-    let headCommit;
-
-    // Try to get the HEAD commit.
+    const commits = [];
+    
+    // Try to get the HEAD reference
     try {
-      const branchName = (await repo.getCurrentBranch()).shorthand();
-      headCommit = await repo.getBranchCommit(branchName);
-    } catch (e) {
-      console.warn("getHeadCommit failed:", e.message);
-      headCommit = null;
-    }
-
-    // If no HEAD, try to get the commit from the 'main' branch.
-    if (!headCommit) {
-      try {
-        headCommit = await repo.getBranchCommit('main');
-      } catch (e) {
-        console.warn("getBranchCommit('main') failed:", e.message);
-        return res.json({ commits: [] });
-      }
-    }
-
-    let commits = [];
-    const history = headCommit.history();
-
-    history.on("commit", commit => {
-      commits.push({
-        sha: commit.sha(),
-        message: commit.message().trim(),
-        author: commit.author().name(),
-        date: commit.date()
+      const head = await repo.head();
+      const history = head.history();
+      
+      history.on("commit", commit => {
+        commits.push({
+          sha: commit.sha(),
+          message: commit.message(),
+          author: commit.author().name(),
+          date: commit.date()
+        });
       });
-    });
 
-    history.on("end", () => {
-      res.json({ commits });
-    });
+      history.on("end", () => {
+        res.json({ commits });
+      });
 
-    history.on("error", err => {
-      console.error("Error reading commit history:", err);
-      res.status(500).json({ error: "Error reading commit history" });
-    });
+      history.on("error", err => {
+        console.error("Error in commit history:", err);
+        res.status(500).json({ 
+          error: "Error getting commit history",
+          details: err.message 
+        });
+      });
 
-    history.start();
+      history.start();
+    } catch (headErr) {
+      // Handle case where repository exists but has no commits
+      console.log("No commits found in repository");
+      res.json({ commits: [] });
+    }
+
   } catch (err) {
     console.error("Error opening repository:", err.message);
     res.status(500).json({ error: "Error opening repository" });
@@ -283,6 +333,53 @@ async function getBranches(req, res) {
   }
 }
 
+// old
+// async function getDiff(req, res) {
+//   const repoName = req.params.repoName;
+//   const { commit1, commit2, filePath } = req.query;
+
+//   if (!commit1 || !commit2 || !filePath) {
+//     return res.status(400).json({ error: "Missing required parameters" });
+//   }
+
+//   try {
+//     const actualRepoName = repoName.endsWith('.git') ? repoName : `${repoName}.git`;
+//     const repoPath = path.join(REPO_BASE_PATH, actualRepoName);
+//     const repo = await NodeGit.Repository.open(repoPath);
+
+//     const c1 = await repo.getCommit(commit1);
+//     const c2 = await repo.getCommit(commit2);
+
+//     const tree1 = await c1.getTree();
+//     const tree2 = await c2.getTree();
+
+//     const diff = await NodeGit.Diff.treeToTree(repo, tree1, tree2, {
+//       pathspec: [filePath],
+//       flags: NodeGit.Diff.OPTION.SHOW_UNTRACKED_CONTENT
+//     });
+
+//     const patches = await diff.patches();
+//     let diffText = '';
+
+//     for (const patch of patches) {
+//       const hunks = await patch.hunks();
+//       for (const hunk of hunks) {
+//         const lines = await hunk.lines();
+//         for (const line of lines) {
+//           const prefix = String.fromCharCode(line.origin());
+//           diffText += prefix + line.content();
+//         }
+//       }
+//     }
+
+//     res.json({ diff: diffText });
+//   } catch (err) {
+//     console.error("Error getting diff:", err);
+//     res.status(500).json({ error: "Error getting diff", details: err.message });
+//   }
+// }
+
+// new
 async function getDiff(req, res) {
   const repoName = req.params.repoName;
   const { commit1, commit2, filePath } = req.query;
@@ -296,37 +393,47 @@ async function getDiff(req, res) {
     const repoPath = path.join(REPO_BASE_PATH, actualRepoName);
     const repo = await NodeGit.Repository.open(repoPath);
 
-    const c1 = await repo.getCommit(commit1);
-    const c2 = await repo.getCommit(commit2);
+    try {
+      const c1 = await repo.getCommit(commit1);
+      const c2 = await repo.getCommit(commit2);
 
-    const tree1 = await c1.getTree();
-    const tree2 = await c2.getTree();
+      const tree1 = await c1.getTree();
+      const tree2 = await c2.getTree();
 
-    const diff = await NodeGit.Diff.treeToTree(repo, tree1, tree2, {
-      pathspec: [filePath],
-      flags: NodeGit.Diff.OPTION.SHOW_UNTRACKED_CONTENT
-    });
+      const diff = await NodeGit.Diff.treeToTree(repo, tree1, tree2, {
+        pathspec: [filePath],
+        flags: NodeGit.Diff.OPTION.SHOW_UNTRACKED_CONTENT
+      });
 
-    const patches = await diff.patches();
-    let diffText = '';
+      const patches = await diff.patches();
+      let diffText = '';
 
-    for (const patch of patches) {
-      const hunks = await patch.hunks();
-      for (const hunk of hunks) {
-        const lines = await hunk.lines();
-        for (const line of lines) {
-          const prefix = String.fromCharCode(line.origin());
-          diffText += prefix + line.content();
+      for (const patch of patches) {
+        const hunks = await patch.hunks();
+        for (const hunk of hunks) {
+          const lines = await hunk.lines();
+          for (const line of lines) {
+            const prefix = String.fromCharCode(line.origin());
+            diffText += prefix + line.content();
+          }
         }
       }
-    }
 
-    res.json({ diff: diffText });
+      res.json({ diff: diffText });
+    } catch (commitErr) {
+      console.error("Error accessing commits:", commitErr);
+      res.status(404).json({ 
+        error: "Could not access commits",
+        details: "One or both commits not found in repository" 
+      });
+    }
   } catch (err) {
     console.error("Error getting diff:", err);
-    res.status(500).json({ error: "Error getting diff", details: err.message });
+    res.status(500).json({ 
+      error: "Error getting diff", 
+      details: err.message 
+    });
   }
 }
-
 
 module.exports = { listRepos, createRepo, getCommits, getDiff, getRepoTree, getFileContent, getBranches};
