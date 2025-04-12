@@ -135,62 +135,6 @@ async function getCommits(req, res) {
   }
 }
 
-/**
- * Get the diff for a specific commit.
- * Expects repository name in req.params.repoName and commit SHA in req.params.commitSha.
- */
-async function getDiff(req, res) {
-  const repoName = req.params.repoName;
-  const commitSha = req.params.commitSha;
-  const repoPath = path.join(REPO_BASE_PATH, repoName);
-
-  try {
-    const repo = await NodeGit.Repository.open(repoPath);
-    const commit = await repo.getCommit(commitSha);
-    let diffs = [];
-
-    // If the commit has a parent, diff against it.
-    if (commit.parentcount() > 0) {
-      const parent = await commit.parent(0);
-      const diffList = await NodeGit.Diff.treeToTree(
-        repo,
-        await parent.getTree(),
-        await commit.getTree()
-      );
-      const patches = await diffList.patches();
-      patches.forEach(patch => {
-        diffs.push({
-          file: patch.newFile().path(),
-          status: patch.status(), // status can indicate if a file was modified, added, etc.
-          additions: patch.lineStats().total_additions,
-          deletions: patch.lineStats().total_deletions
-        });
-      });
-    } else {
-      // For an initial commit, diff against an empty tree.
-      const diffList = await NodeGit.Diff.treeToTree(
-        repo,
-        null,
-        await commit.getTree()
-      );
-      const patches = await diffList.patches();
-      patches.forEach(patch => {
-        diffs.push({
-          file: patch.newFile().path(),
-          status: patch.status(),
-          additions: patch.lineStats().total_additions,
-          deletions: patch.lineStats().total_deletions
-        });
-      });
-    }
-
-    res.json({ diffs });
-  } catch (err) {
-    console.error("Error getting diff:", err);
-    res.status(500).json({ error: "Error getting diff" });
-  }
-}
-
 
 async function getRepoTree(req, res) {
   const repoName = req.params.repoName;
@@ -336,6 +280,51 @@ async function getBranches(req, res) {
       error: "Error getting branches",
       details: err.message 
     });
+  }
+}
+
+async function getDiff(req, res) {
+  const repoName = req.params.repoName;
+  const { commit1, commit2, filePath } = req.query;
+
+  if (!commit1 || !commit2 || !filePath) {
+    return res.status(400).json({ error: "Missing required parameters" });
+  }
+
+  try {
+    const actualRepoName = repoName.endsWith('.git') ? repoName : `${repoName}.git`;
+    const repoPath = path.join(REPO_BASE_PATH, actualRepoName);
+    const repo = await NodeGit.Repository.open(repoPath);
+
+    const c1 = await repo.getCommit(commit1);
+    const c2 = await repo.getCommit(commit2);
+
+    const tree1 = await c1.getTree();
+    const tree2 = await c2.getTree();
+
+    const diff = await NodeGit.Diff.treeToTree(repo, tree1, tree2, {
+      pathspec: [filePath],
+      flags: NodeGit.Diff.OPTION.SHOW_UNTRACKED_CONTENT
+    });
+
+    const patches = await diff.patches();
+    let diffText = '';
+
+    for (const patch of patches) {
+      const hunks = await patch.hunks();
+      for (const hunk of hunks) {
+        const lines = await hunk.lines();
+        for (const line of lines) {
+          const prefix = String.fromCharCode(line.origin());
+          diffText += prefix + line.content();
+        }
+      }
+    }
+
+    res.json({ diff: diffText });
+  } catch (err) {
+    console.error("Error getting diff:", err);
+    res.status(500).json({ error: "Error getting diff", details: err.message });
   }
 }
 
