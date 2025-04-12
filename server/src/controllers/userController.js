@@ -13,7 +13,7 @@ exports.updateSshKey = async (req, res) => {
       return res.status(400).json({ error: "A valid publicKey is required" });
     }
     // Simple validation: key should start with 'ssh-rsa' or 'ssh-ed25519'
-    if (!publicKey.startsWith("ssh-rsa") && !publicKey.startsWith("ssh-ed25519")) {
+    if (!publicKey.startsWith("ssh-rsa")) {
       return res.status(400).json({ error: "Invalid SSH public key format" });
     }
     
