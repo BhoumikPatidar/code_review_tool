@@ -9,6 +9,8 @@ import PRDashboard from "./pages/PRDashboard"; // Import the new page
 import RepositoryManagement from "./pages/RepositoryManagement"; // New import
 import PRDetail from "./pages/PRDetail"; // Import the new detailed PR view
 import SshKeyUpdate from "./pages/SshKeyUpdate"; // New import
+import RepoExplorer from "./pages/RepoExplorer";
+import FileViewer from "./pages/FileViewer";
 
 function App() {
   const token = localStorage.getItem("token");
@@ -21,18 +23,16 @@ function App() {
     <div style={{ width: "100%" }}>
       {token && user && <Header />}
       <Routes>
-        <Route path="/prs/:id" element={<PRDetail />} />
         <Route path="/" element={<Home />} />
-        <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/prs" element={<PRDashboard />} />{" "}
-        {/* New route for PR dashboard */}
-        <Route path="/prs/:id" element={<PRDetail />} />{" "}
-        {/* Detailed PR view */}
-        <Route path="/repositories" element={<RepositoryManagement />} />{" "}
-        {/* New route */}
-        <Route path="/sshkey" element={<SshKeyUpdate />} /> {/* New route */}
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/prs" element={<PRDashboard />} />
+        <Route path="/prs/:id" element={<PRDetail />} />
+        <Route path="/repositories" element={<RepositoryManagement />} />
+        <Route path="/sshkey" element={<SshKeyUpdate />} />
+        <Route path="/explore/:repoName" element={<RepoExplorer />} />
+        <Route path="/view/:repoName" element={<FileViewer />} />
       </Routes>
     </div>
   );

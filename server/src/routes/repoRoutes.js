@@ -1,8 +1,17 @@
-// server/src/routes/repoRoutes.js
 const express = require("express");
 const router = express.Router();
-const { listRepos, getCommits, getDiff, createRepo } = require("../controllers/repoController");
+const { 
+  listRepos, 
+  createRepo, 
+  getCommits, 
+  getDiff,
+  getRepoTree,
+  getFileContent,
+  getBranches
+} = require("../controllers/repoController");
 const authMiddleware = require("../middleware/authMiddleware");
+
+router.get("/:repoName/branches", getBranches);
 
 // Endpoint to list all repositories
 router.get("/", listRepos);
@@ -15,5 +24,11 @@ router.get("/:repoName/commits", getCommits);
 
 // Endpoint to get diff for a specific commit in a repository
 router.get("/:repoName/diff/:commitSha", getDiff);
+
+// Endpoint to get repository tree
+router.get("/:repoName/tree", getRepoTree);
+
+// Endpoint to get file content
+router.get("/:repoName/file", getFileContent);
 
 module.exports = router;
