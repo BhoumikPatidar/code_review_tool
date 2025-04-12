@@ -98,6 +98,7 @@ function FileViewer() {
   const [selectedCommit1, setSelectedCommit1] = useState("");
   const [selectedCommit2, setSelectedCommit2] = useState("");
   const [diff, setDiff] = useState(null);
+  const [showDiff, setShowDiff] = useState(false);
   const [latestCommit, setLatestCommit] = useState(null);
 
   // Fetch commit history
@@ -157,11 +158,15 @@ function FileViewer() {
     }
   }, [repoName, filePath]);
 
-  useEffect(() => {
-    if (selectedCommit1 && selectedCommit2) {
-      fetchDiff();
-    }
-  }, [selectedCommit1, selectedCommit2]);
+  const handleShowDiff = () => {
+    setShowDiff(true);
+    fetchDiff();
+  };
+
+  const handleHideDiff = () => {
+    setShowDiff(false);
+    setDiff(null);
+  };
 
   const renderDiff = () => {
     if (!diff) return null;
@@ -256,11 +261,43 @@ function FileViewer() {
             ))}
           </select>
         </div>
+
+        {!showDiff ? (
+          <button 
+            onClick={handleShowDiff}
+            style={{
+              padding: "8px 16px",
+              backgroundColor: "#2ea44f",
+              color: "white",
+              border: "none",
+              borderRadius: "6px",
+              cursor: "pointer"
+            }}
+          >
+            Show Diff
+          </button>
+        ) : (
+          <button 
+            onClick={handleHideDiff}
+            style={{
+              padding: "8px 16px",
+              backgroundColor: "#6e7681",
+              color: "white",
+              border: "none",
+              borderRadius: "6px",
+              cursor: "pointer"
+            }}
+          >
+            Hide Diff
+          </button>
+        )}
       </div>
 
       {error && <p style={{ color: "red" }}>{error}</p>}
       
-      {selectedCommit1 === selectedCommit2 ? (
+      {showDiff ? (
+        renderDiff()
+      ) : (
         <div style={{ 
           border: "1px solid #d1d5da", 
           borderRadius: "6px",
@@ -279,8 +316,6 @@ function FileViewer() {
             {content}
           </SyntaxHighlighter>
         </div>
-      ) : (
-        renderDiff()
       )}
     </div>
   );
