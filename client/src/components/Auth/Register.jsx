@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import api from "../../utils/api";
+import "./Auth.css"; // Importing shared CSS for login and register
 
 function Register() {
   const [username, setUsername] = useState("");
@@ -12,18 +12,16 @@ function Register() {
     try {
       const { data } = await api.post("/auth/register", { username, password });
       localStorage.setItem("token", data.token);
-      // navigate('/dashboard');
-      location.href = "/repositories";
+      navigate("/dashboard");
     } catch (error) {
-      console.log(error);
       alert(error.response?.data?.message || "Registration failed");
     }
   };
 
   return (
-    <div style={{ padding: "2rem" }}>
+    <div className="auth-container">
       <h2>Register</h2>
-      <form onSubmit={handleRegister}>
+      <form onSubmit={handleRegister} className="auth-form">
         <input
           type="text"
           placeholder="Username"
@@ -31,8 +29,6 @@ function Register() {
           onChange={(e) => setUsername(e.target.value)}
           required
         />
-        <br />
-        <br />
         <input
           type="password"
           placeholder="Password"
@@ -40,8 +36,6 @@ function Register() {
           onChange={(e) => setPassword(e.target.value)}
           required
         />
-        <br />
-        <br />
         <button type="submit">Register</button>
       </form>
     </div>

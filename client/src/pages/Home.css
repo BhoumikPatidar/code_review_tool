@@ -1,0 +1,73 @@
+/src/pages/Home.css */
+
+/* Reset styles for the Home page */
+.home-container * {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.home-container {
+  font-family: 'Poppins', sans-serif; /* Modern font */
+  background: #ffffff; /* White background for the logo */
+  color: #333333; /* Dark text for contrast */
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 20px;
+}
+
+.home-logo {
+  width: 150px; /* Adjusted size for better balance */
+  margin-bottom: 20px;
+}
+
+.home-tagline {
+  font-size: 2.5rem; /* Larger tagline */
+  font-weight: 700; /* Bold for emphasis */
+  margin-bottom: 10px;
+  color: #1e3c72; /* Slightly darker blue for branding */
+}
+
+.home-description {
+  font-size: 1.2rem; /* Smaller description */
+  font-weight: 300; /* Light font for contrast */
+  margin-bottom: 30px;
+  line-height: 1.6;
+  color: #555555; /* Subtle gray for readability */
+}
+
+.home-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 20px; /* Space between buttons */
+}
+
+.btn {
+  display: inline-block;
+  padding: 12px 20px;
+  font-size: 1rem;
+  color: #ffffff;
+  text-decoration: none;
+  border-radius: 8px;
+  transition: background 0.3s ease;
+}
+
+.btn-primary {
+  background: #4caf50; /* Green button */
+}
+
+.btn-primary:hover {
+  background: #45a049; /* Slightly darker green on hover */
+}
+
+.btn-secondary {
+  background: #007bff; /* Blue button */
+}
+
+.btn-secondary:hover {
+  background: #0056b3; /* Slightly darker blue on hover */
+}
