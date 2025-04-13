@@ -308,10 +308,12 @@ function PRDetail() {
             targetBranch: pr.targetBranch,
           },
         });
-        setBranchDiff(data.diff);
+        console.log("Branch diff fetched:", data.diff); // Debug log
+        setBranchDiff(data.diff || "No differences found.");
       } catch (err) {
         console.error("Error fetching branch diff:", err);
         setError("Error fetching branch diff");
+        setBranchDiff("Failed to fetch branch diff.");
       }
     }
   };
