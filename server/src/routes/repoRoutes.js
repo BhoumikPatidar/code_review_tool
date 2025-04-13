@@ -33,6 +33,5 @@ router.get("/:repoName/tree", getRepoTree);
 // Endpoint to get file content
 router.get("/:repoName/file", getFileContent);
 
-router.get("/:repoName/diff", getDiff);
 
 module.exports = router;
