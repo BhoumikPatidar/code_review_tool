@@ -514,4 +514,4 @@ async function getPRDiff(req, res) {
   }
 }
 
-module.exports = { listRepos, createRepo, getCommits, getDiff, getRepoTree, getFileContent, getBranches};
+module.exports = { listRepos, createRepo, getCommits, getDiff, getRepoTree, getFileContent, getBranches, getPRDiff};
