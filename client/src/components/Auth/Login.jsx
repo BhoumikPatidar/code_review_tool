@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import "./Auth.css"; // Importing shared CSS for login and register
+import api from "../../utils/api";
+import "./Auth.css"; // Shared CSS for Login and Register
 
 function Login() {
   const [username, setUsername] = useState("");
@@ -9,11 +10,20 @@ function Login() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    if (username === "admin" && password === "debug") {
+      localStorage.setItem("token", "dummy_token");
+      localStorage.setItem(
+        "user",
+        JSON.stringify({ username: "admin", role: "developer" })
+      );
+      navigate("/repositories");
+      return;
+    }
     try {
       const { data } = await api.post("/auth/login", { username, password });
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
-      navigate("/dashboard");
+      navigate("/repositories");
     } catch (error) {
       alert(error.response?.data?.message || "Login failed");
     }

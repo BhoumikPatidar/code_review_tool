@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import "./Auth.css"; // Importing shared CSS for login and register
+import api from "../../utils/api";
+import "./Auth.css"; // Shared CSS for Login and Register
 
 function Register() {
   const [username, setUsername] = useState("");
@@ -12,7 +13,8 @@ function Register() {
     try {
       const { data } = await api.post("/auth/register", { username, password });
       localStorage.setItem("token", data.token);
-      navigate("/dashboard");
+      localStorage.setItem("user", JSON.stringify(data.user));
+      navigate("/repositories");
     } catch (error) {
       alert(error.response?.data?.message || "Registration failed");
     }
