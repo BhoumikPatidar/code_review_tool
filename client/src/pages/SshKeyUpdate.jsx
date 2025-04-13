@@ -10,7 +10,7 @@ function SshKeyUpdate() {
   const handleUpdate = async (e) => {
     e.preventDefault();
     try {
-      const { data } = await api.post("/api/user/sshkey", { publicKey });
+      const { data } = await api.post("/user/sshkey", { publicKey });
       setMessage(data.message);
     } catch (error) {
       console.error("Error updating SSH key:", error);
