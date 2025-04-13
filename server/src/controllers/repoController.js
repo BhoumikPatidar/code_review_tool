@@ -137,6 +137,51 @@ async function getCommits(req, res) {
 
 
 
+// async function getRepoTree(req, res) {
+//   const repoName = req.params.repoName;
+//   const queryPath = req.query.path || '';
+//   const branch = req.query.branch || 'main';
+
+//   try {
+//     const actualRepoName = repoName.endsWith('.git') ? repoName : `${repoName}.git`;
+//     const repoPath = path.join(REPO_BASE_PATH, actualRepoName);
+//     const repo = await NodeGit.Repository.open(repoPath);
+    
+//     // Get specified branch commit
+//     const commit = await repo.getBranchCommit(branch);
+//     const tree = await commit.getTree();
+    
+//     let targetTree = tree;
+//     if (queryPath) {
+//       try {
+//         const entry = await tree.getEntry(queryPath);
+//         if (entry.isTree()) {
+//           targetTree = await entry.getTree();
+//         } else {
+//           return res.status(400).json({ error: "The provided path points to a file, not a directory" });
+//         }
+//       } catch (err) {
+//         console.error("Error getting subtree:", err);
+//         return res.status(400).json({ error: "Invalid path" });
+//       }
+//     }
+
+//     const entries = [];
+//     targetTree.entries().forEach(entry => {
+//       entries.push({
+//         name: entry.name(),
+//         type: entry.isBlob() ? 'file' : 'directory',
+//         sha: entry.sha()
+//       });
+//     });
+
+//     res.json({ path: queryPath, entries });
+//   } catch(err) {
+//     console.error("Error getting repository tree:", err);
+//     res.status(500).json({ error: "Error getting repository tree" });
+//   }
+// }
+
 async function getRepoTree(req, res) {
   const repoName = req.params.repoName;
   const queryPath = req.query.path || '';
@@ -146,11 +191,11 @@ async function getRepoTree(req, res) {
     const actualRepoName = repoName.endsWith('.git') ? repoName : `${repoName}.git`;
     const repoPath = path.join(REPO_BASE_PATH, actualRepoName);
     const repo = await NodeGit.Repository.open(repoPath);
-    
+
     // Get specified branch commit
     const commit = await repo.getBranchCommit(branch);
     const tree = await commit.getTree();
-    
+
     let targetTree = tree;
     if (queryPath) {
       try {
@@ -168,20 +213,69 @@ async function getRepoTree(req, res) {
 
     const entries = [];
     targetTree.entries().forEach(entry => {
+      const fileType = entry.isBlob() ? 'file' : 'directory';
       entries.push({
         name: entry.name(),
-        type: entry.isBlob() ? 'file' : 'directory',
-        sha: entry.sha()
+        type: fileType,
+        sha: entry.sha(),
       });
     });
 
+    if (entries.length === 0) {
+      return res.json({ path: queryPath, entries: [], message: "The repository is empty or contains no supported files." });
+    }
+
     res.json({ path: queryPath, entries });
-  } catch(err) {
+  } catch (err) {
     console.error("Error getting repository tree:", err);
     res.status(500).json({ error: "Error getting repository tree" });
   }
 }
 
+// async function getFileContent(req, res) {
+//   const repoName = req.params.repoName;
+//   const filePath = req.query.path;
+
+//   if (!filePath) {
+//     return res.status(400).json({ error: "File path is required" });
+//   }
+
+//   try {
+//     const actualRepoName = repoName.endsWith('.git') ? repoName : `${repoName}.git`;
+//     const repoPath = path.join(REPO_BASE_PATH, actualRepoName);
+//     const repo = await NodeGit.Repository.open(repoPath);
+
+//     // Get the current branch's head commit
+//     let headCommit;
+//     try {
+//       const branchName = (await repo.getCurrentBranch()).shorthand();
+//       headCommit = await repo.getBranchCommit(branchName);
+//     } catch (e) {
+//       headCommit = await repo.getBranchCommit('main');
+//     }
+
+//     const tree = await headCommit.getTree();
+//     const entry = await tree.getEntry(filePath);
+
+//     if (!entry.isBlob()) {
+//       return res.status(400).json({ error: "The provided path is not a file" });
+//     }
+
+//     const blob = await entry.getBlob();
+//     res.json({ 
+//       path: filePath,
+//       content: blob.toString(),
+//       size: blob.rawsize()
+//     });
+
+//   } catch(err) {
+//     console.error("Error getting file content:", err);
+//     res.status(500).json({ 
+//       error: "Error getting file content",
+//       details: err.message 
+//     });
+//   }
+// }
 async function getFileContent(req, res) {
   const repoName = req.params.repoName;
   const filePath = req.query.path;
@@ -212,18 +306,16 @@ async function getFileContent(req, res) {
     }
 
     const blob = await entry.getBlob();
-    res.json({ 
-      path: filePath,
-      content: blob.toString(),
-      size: blob.rawsize()
-    });
+    const content = blob.toString();
 
-  } catch(err) {
+    if (!content.trim()) {
+      return res.json({ path: filePath, content: "This file is empty." });
+    }
+
+    res.json({ path: filePath, content, size: blob.rawsize() });
+  } catch (err) {
     console.error("Error getting file content:", err);
-    res.status(500).json({ 
-      error: "Error getting file content",
-      details: err.message 
-    });
+    res.status(500).json({ error: "Error getting file content", details: err.message });
   }
 }
 

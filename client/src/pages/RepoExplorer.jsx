@@ -122,33 +122,37 @@ function RepoExplorer() {
       {renderBreadcrumbs()}
       {error && <p style={{ color: "red" }}>{error}</p>}
       <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-        {tree.entries.map((entry, index) => (
-          <button
-            key={index}
-            onClick={() => {
-              if (entry.type === "directory") {
-                navigate(`/explore/${repoName}?path=${currentPath ? currentPath + "/" + entry.name : entry.name}`);
-              } else {
-                navigate(`/view/${repoName}?path=${currentPath ? currentPath + "/" + entry.name : entry.name}`);
-              }
-            }}
-            style={{
-              padding: "8px 16px",
-              textAlign: "left",
-              cursor: "pointer",
-              backgroundColor: "#f6f8fa",
-              border: "1px solid #d1d5da",
-              borderRadius: "6px",
-              width: "fit-content",
-              display: "flex",
-              alignItems: "center",
-              gap: "8px"
-            }}
-          >
-            {entry.type === "directory" ? "📁" : "📄"} {entry.name}
-          </button>
-        ))}
-      </div>
+  {tree.entries.length > 0 ? (
+    tree.entries.map((entry, index) => (
+      <button
+        key={index}
+        onClick={() => {
+          if (entry.type === "directory") {
+            navigate(`/explore/${repoName}?path=${currentPath ? currentPath + "/" + entry.name : entry.name}`);
+          } else {
+            navigate(`/view/${repoName}?path=${currentPath ? currentPath + "/" + entry.name : entry.name}`);
+          }
+        }}
+        style={{
+          padding: "8px 16px",
+          textAlign: "left",
+          cursor: "pointer",
+          backgroundColor: "#f6f8fa",
+          border: "1px solid #d1d5da",
+          borderRadius: "6px",
+          width: "fit-content",
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+        }}
+      >
+        {entry.type === "directory" ? "📁" : "📄"} {entry.name}
+      </button>
+    ))
+  ) : (
+    <p style={{ color: "#666" }}>The repository is empty or contains no supported files.</p>
+  )}
+</div>
     </div>
   );
 }
