@@ -6,13 +6,37 @@ const api = axios.create({
   baseURL: baseURL
 });
 
-// Automatically attach JWT token (if exists) to each request
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
+// Create a function to setup the token that can be called on login
+export const setupAuthToken = (token) => {
   if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  } else {
+    delete api.defaults.headers.common['Authorization'];
   }
-  return config;
-});
+};
+
+// Initial setup from localStorage
+const token = localStorage.getItem('token');
+if (token) {
+  setupAuthToken(token);
+}
+
+// Add response interceptor to handle 401 unauthorized globally
+api.interceptors.response.use(
+  response => response,
+  error => {
+    // If we get a 401 Unauthorized response
+    if (error.response && error.response.status === 401) {
+      // Clear token and localStorage
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      delete api.defaults.headers.common['Authorization'];
+      
+      // This could be redirecting to login - let's change it to home
+      window.location.href = '/';
+    }
+    return Promise.reject(error);
+  }
+);
 
 export default api;

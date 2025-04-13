@@ -1,8 +1,24 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import './Home.css'; // Importing a CSS file for styling
+import React, { useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import './Home.css';
 
 function Home() {
+  const { isAuthenticated, loading } = useAuth();
+  const navigate = useNavigate();
+
+  // Redirect to repositories if already authenticated
+  useEffect(() => {
+    if (isAuthenticated && !loading) {
+      navigate('/repositories', { replace: true });
+    }
+  }, [isAuthenticated, loading, navigate]);
+
+  // Don't show login options if loading or already authenticated
+  if (loading || isAuthenticated) {
+    return null;
+  }
+
   return (
     <div className="home-container">
       {/* Logo */}

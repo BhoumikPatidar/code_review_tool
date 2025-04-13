@@ -1,40 +1,114 @@
 // src/App.jsx
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, useLocation } from "react-router-dom";
+import { AuthProvider } from "./context/AuthContext";
+import { useAuth } from "./context/AuthContext";
+import ProtectedRoute from "./components/ProtectedRoute";
 import Header from "./components/Header";
 import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
 import Login from "./components/Auth/Login";
 import Register from "./components/Auth/Register";
-import PRDashboard from "./pages/PRDashboard"; // Import the new page
-import RepositoryManagement from "./pages/RepositoryManagement"; // New import
-import PRDetail from "./pages/PRDetail"; // Import the new detailed PR view
-import SshKeyUpdate from "./pages/SshKeyUpdate"; // New import
+import PRDashboard from "./pages/PRDashboard";
+import RepositoryManagement from "./pages/RepositoryManagement";
+import PRDetail from "./pages/PRDetail";
+import SshKeyUpdate from "./pages/SshKeyUpdate";
 import RepoExplorer from "./pages/RepoExplorer";
 import FileViewer from "./pages/FileViewer";
+import LoadingSpinner from "./context/LoadingSpinner";
+import { useEffect } from "react";
 
-function App() {
-  const token = localStorage.getItem("token");
-  const user = localStorage.getItem("user");
+// Component to handle header rendering based on auth
+function AppContent() {
+  const { isAuthenticated, loading } = useAuth();
+  const location = useLocation();
 
-  console.log(token);
-  console.log(user);
+  // Log navigation for debugging purposes
+  useEffect(() => {
+    console.log(`Navigated to: ${location.pathname}`);
+    console.log(`Auth status: ${isAuthenticated ? 'Authenticated' : 'Not authenticated'}`);
+  }, [location, isAuthenticated]);
+
+  if (loading) {
+    return <LoadingSpinner />;
+  }
 
   return (
     <div style={{ width: "100%" }}>
-      {token && user && <Header />}
+      {isAuthenticated && <Header />}
       <Routes>
+        {/* Public routes */}
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/prs" element={<PRDashboard />} />
-        <Route path="/prs/:id" element={<PRDetail />} />
-        <Route path="/repositories" element={<RepositoryManagement />} />
-        <Route path="/sshkey" element={<SshKeyUpdate />} />
-        <Route path="/explore/:repoName" element={<RepoExplorer />} />
-        <Route path="/view/:repoName" element={<FileViewer />} />
+        
+        {/* Protected routes */}
+        <Route 
+          path="/dashboard" 
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/prs" 
+          element={
+            <ProtectedRoute>
+              <PRDashboard />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/prs/:id" 
+          element={
+            <ProtectedRoute>
+              <PRDetail />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/repositories" 
+          element={
+            <ProtectedRoute>
+              <RepositoryManagement />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/sshkey" 
+          element={
+            <ProtectedRoute>
+              <SshKeyUpdate />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/explore/:repoName" 
+          element={
+            <ProtectedRoute>
+              <RepoExplorer />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/view/:repoName" 
+          element={
+            <ProtectedRoute>
+              <FileViewer />
+            </ProtectedRoute>
+          } 
+        />
       </Routes>
     </div>
+  );
+}
+
+// Main App component with AuthProvider
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }
 

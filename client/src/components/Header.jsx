@@ -1,15 +1,22 @@
 // src/components/Header.jsx
 import { Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 function Header() {
-  // const navigate = useNavigate();
-  const user = JSON.parse(localStorage.getItem("user"));
+  const { currentUser, logout, loading } = useAuth();
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    location.href = "/";
+  // Improved logout handler that uses the AuthContext logout function
+  const handleLogout = (e) => {
+    e.preventDefault(); // Prevent any default behavior
+    if (window.confirm("Are you sure you want to log out?")) {
+      logout(); // This should use the AuthContext logout function
+    }
   };
+
+  // Don't show header when loading or not authenticated
+  if (loading || !currentUser) {
+    return null;
+  }
 
   return (
     <header
@@ -23,9 +30,6 @@ function Header() {
     >
       <h2>Code Review Tool</h2>
       <nav>
-        {/* <Link to="/dashboard" style={{ marginRight: "1rem" }}>
-          Dashboard
-        </Link> */}
         <Link to="/prs" style={{ marginRight: "1rem" }}>
           Pull Requests
         </Link>
@@ -35,14 +39,19 @@ function Header() {
         <Link to="/sshkey" style={{ marginRight: "1rem" }}>
           SSH Key
         </Link>
-        {user && (
-          <span>
-            Welcome, {user.username}
-            <button onClick={handleLogout} style={{ marginLeft: "1rem" }}>
-              Logout
-            </button>
-          </span>
-        )}
+        <span>
+          Welcome, {currentUser.username}
+          <button 
+            onClick={handleLogout} 
+            style={{ 
+              marginLeft: "1rem",
+              backgroundColor: "#f44336",
+              color: "white"
+            }}
+          >
+            Logout
+          </button>
+        </span>
       </nav>
     </header>
   );
