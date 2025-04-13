@@ -422,48 +422,43 @@ async function getBranches(req, res) {
 // }
 async function getDiff(req, res) {
   const repoName = req.params.repoName;
-  const { sourceBranch, targetBranch } = req.query;
+  const { commit1, commit2, sourceBranch, targetBranch } = req.query;
 
-  if (!sourceBranch || !targetBranch) {
-    return res.status(400).json({ error: "Source and target branches are required" });
+  if (!commit1 || !commit2) {
+    return res.status(400).json({ error: "Both commit1 and commit2 are required" });
   }
 
   try {
+    const actualSourceBranch = sourceBranch || "main"; // Default to "main" if not provided
+    const actualTargetBranch = targetBranch || "main"; // Default to "main" if not provided
+
     const actualRepoName = repoName.endsWith('.git') ? repoName : `${repoName}.git`;
     const repoPath = path.join(REPO_BASE_PATH, actualRepoName);
     const repo = await NodeGit.Repository.open(repoPath);
 
-    const sourceCommit = await repo.getBranchCommit(sourceBranch);
-    const targetCommit = await repo.getBranchCommit(targetBranch);
+    const commitObj1 = await repo.getCommit(commit1);
+    const commitObj2 = await repo.getCommit(commit2);
 
-    const sourceTree = await sourceCommit.getTree();
-    const targetTree = await targetCommit.getTree();
+    const tree1 = await commitObj1.getTree();
+    const tree2 = await commitObj2.getTree();
 
-    const diff = await NodeGit.Diff.treeToTree(repo, sourceTree, targetTree);
+    const diff = await NodeGit.Diff.treeToTree(repo, tree1, tree2);
 
-    const filesWithDiffs = [];
     const patches = await diff.patches();
+    let diffText = "";
 
     for (const patch of patches) {
-      const filePath = patch.newFile().path();
       const hunks = await patch.hunks();
-      const diffLines = [];
-
       for (const hunk of hunks) {
         const lines = await hunk.lines();
         for (const line of lines) {
           const prefix = String.fromCharCode(line.origin());
-          diffLines.push(prefix + line.content());
+          diffText += prefix + line.content();
         }
       }
-
-      filesWithDiffs.push({
-        file: filePath,
-        diff: diffLines.join(""),
-      });
     }
 
-    res.json({ files: filesWithDiffs });
+    res.json({ diff: diffText });
   } catch (err) {
     console.error("Error getting diff:", err);
     res.status(500).json({ error: "Error getting diff", details: err.message });
