@@ -57,6 +57,7 @@ const AUTHORIZED_KEYS_PATH = "/home/git/.ssh/authorized_keys";
 // };
 
 exports.updateSshKey = async (req, res) => {
+  console.log("updateSshKey called with body:", req.body);
   try {
     const { publicKey } = req.body;
 
