@@ -223,7 +223,12 @@ function RepoExplorer() {
     if (selectedCommit1 && selectedCommit2) {
       try {
         const { data } = await api.get(`/repos/${repoName}/diff`, {
-          params: { commit1: selectedCommit1, commit2: selectedCommit2 },
+          params: {
+            commit1: selectedCommit1,
+            commit2: selectedCommit2,
+            sourceBranch: currentBranch, // Pass the current branch as the source branch
+            targetBranch: currentBranch, // Pass the current branch as the target branch
+          },
         });
         setDiff(data.diff);
       } catch (err) {
