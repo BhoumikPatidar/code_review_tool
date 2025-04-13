@@ -330,10 +330,10 @@ async function getBranches(req, res) {
 // }
 async function getDiff(req, res) {
   const repoName = req.params.repoName;
-  const { commit1, commit2, filePath, sourceBranch, targetBranch } = req.query;
+  const { sourceBranch, targetBranch } = req.query;
 
-  if (!commit1 && !commit2 && (!sourceBranch || !targetBranch)) {
-    return res.status(400).json({ error: "Missing required parameters" });
+  if (!sourceBranch || !targetBranch) {
+    return res.status(400).json({ error: "Source and target branches are required" });
   }
 
   try {
@@ -341,41 +341,37 @@ async function getDiff(req, res) {
     const repoPath = path.join(REPO_BASE_PATH, actualRepoName);
     const repo = await NodeGit.Repository.open(repoPath);
 
-    let c1, c2;
+    const sourceCommit = await repo.getBranchCommit(sourceBranch);
+    const targetCommit = await repo.getBranchCommit(targetBranch);
 
-    if (sourceBranch && targetBranch) {
-      // Get commits for the source and target branches
-      c1 = await repo.getBranchCommit(sourceBranch);
-      c2 = await repo.getBranchCommit(targetBranch);
-    } else {
-      // Get commits by SHA
-      c1 = await repo.getCommit(commit1);
-      c2 = await repo.getCommit(commit2);
-    }
+    const sourceTree = await sourceCommit.getTree();
+    const targetTree = await targetCommit.getTree();
 
-    const tree1 = await c1.getTree();
-    const tree2 = await c2.getTree();
+    const diff = await NodeGit.Diff.treeToTree(repo, sourceTree, targetTree);
 
-    const diff = await NodeGit.Diff.treeToTree(repo, tree1, tree2, {
-      pathspec: filePath ? [filePath] : undefined,
-      flags: NodeGit.Diff.OPTION.SHOW_UNTRACKED_CONTENT,
-    });
-
+    const filesWithDiffs = [];
     const patches = await diff.patches();
-    let diffText = '';
 
     for (const patch of patches) {
+      const filePath = patch.newFile().path();
       const hunks = await patch.hunks();
+      const diffLines = [];
+
       for (const hunk of hunks) {
         const lines = await hunk.lines();
         for (const line of lines) {
           const prefix = String.fromCharCode(line.origin());
-          diffText += prefix + line.content();
+          diffLines.push(prefix + line.content());
         }
       }
+
+      filesWithDiffs.push({
+        file: filePath,
+        diff: diffLines.join(""),
+      });
     }
 
-    res.json({ diff: diffText });
+    res.json({ files: filesWithDiffs });
   } catch (err) {
     console.error("Error getting diff:", err);
     res.status(500).json({ error: "Error getting diff", details: err.message });

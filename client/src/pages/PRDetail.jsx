@@ -256,6 +256,8 @@ function PRDetail() {
   const [prComments, setPrComments] = useState([]);
   const [newComment, setNewComment] = useState("");
   const [loadingAnalysis, setLoadingAnalysis] = useState(false);
+  const [filesWithDiffs, setFilesWithDiffs] = useState([]);
+  const [selectedFileDiff, setSelectedFileDiff] = useState(null);
 
   // Fetch PR details
   useEffect(() => {
@@ -308,12 +310,11 @@ function PRDetail() {
             targetBranch: pr.targetBranch,
           },
         });
-        console.log("Branch diff fetched:", data.diff); // Debug log
-        setBranchDiff(data.diff || "No differences found.");
+        console.log("Files with differences:", data.files); // Debug log
+        setFilesWithDiffs(data.files || []);
       } catch (err) {
         console.error("Error fetching branch diff:", err);
         setError("Error fetching branch diff");
-        setBranchDiff("Failed to fetch branch diff.");
       }
     }
   };
@@ -385,28 +386,52 @@ function PRDetail() {
           </p>
           <hr />
           <h3>Diff Between Source and Target Branch</h3>
-          {branchDiff ? (
-            <pre
-              style={{
-                background: "#f6f8fa",
-                padding: "1rem",
-                borderRadius: "6px",
-                overflowX: "auto",
-              }}
-            >
-              {branchDiff.split("\n").map((line, idx) => {
-                let color = "black";
-                if (line.startsWith("+")) color = "green";
-                if (line.startsWith("-")) color = "red";
-                return (
-                  <span key={idx} style={{ color }}>
-                    {line}
-                  </span>
-                );
-              })}
-            </pre>
+          {filesWithDiffs.length > 0 ? (
+            <ul>
+              {filesWithDiffs.map((file, idx) => (
+                <li key={idx}>
+                  <button
+                    onClick={() => setSelectedFileDiff(file.diff)}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      color: "#0366d6",
+                      cursor: "pointer",
+                      textDecoration: "underline",
+                    }}
+                  >
+                    {file.file}
+                  </button>
+                </li>
+              ))}
+            </ul>
           ) : (
-            <p>Loading branch diff...</p>
+            <p>No differences found.</p>
+          )}
+
+          {selectedFileDiff && (
+            <div style={{ marginTop: "1rem", border: "1px solid #ccc", padding: "1rem" }}>
+              <h3>Diff for Selected File</h3>
+              <pre
+                style={{
+                  background: "#f6f8fa",
+                  padding: "1rem",
+                  borderRadius: "6px",
+                  overflowX: "auto",
+                }}
+              >
+                {selectedFileDiff.split("\n").map((line, idx) => {
+                  let color = "black";
+                  if (line.startsWith("+")) color = "green";
+                  if (line.startsWith("-")) color = "red";
+                  return (
+                    <span key={idx} style={{ color }}>
+                      {line}
+                    </span>
+                  );
+                })}
+              </pre>
+            </div>
           )}
           <hr />
           <h3>Commit History (Source Branch)</h3>
