@@ -464,6 +464,54 @@ async function getDiff(req, res) {
     res.status(500).json({ error: "Error getting diff", details: err.message });
   }
 }
+async function getPRDiff(req, res) {
+  const repoName = req.params.repoName;
+  const { sourceBranch, targetBranch } = req.query;
 
+  if (!sourceBranch || !targetBranch) {
+    return res.status(400).json({ error: "Source and target branches are required" });
+  }
+
+  try {
+    const actualRepoName = repoName.endsWith('.git') ? repoName : `${repoName}.git`;
+    const repoPath = path.join(REPO_BASE_PATH, actualRepoName);
+    const repo = await NodeGit.Repository.open(repoPath);
+
+    const sourceCommit = await repo.getBranchCommit(sourceBranch);
+    const targetCommit = await repo.getBranchCommit(targetBranch);
+
+    const sourceTree = await sourceCommit.getTree();
+    const targetTree = await targetCommit.getTree();
+
+    const diff = await NodeGit.Diff.treeToTree(repo, sourceTree, targetTree);
+
+    const filesWithDiffs = [];
+    const patches = await diff.patches();
+
+    for (const patch of patches) {
+      const filePath = patch.newFile().path();
+      const hunks = await patch.hunks();
+      const diffLines = [];
+
+      for (const hunk of hunks) {
+        const lines = await hunk.lines();
+        for (const line of lines) {
+          const prefix = String.fromCharCode(line.origin());
+          diffLines.push(prefix + line.content());
+        }
+      }
+
+      filesWithDiffs.push({
+        file: filePath,
+        diff: diffLines.join(""),
+      });
+    }
+
+    res.json({ files: filesWithDiffs });
+  } catch (err) {
+    console.error("Error getting PR diff:", err);
+    res.status(500).json({ error: "Error getting PR diff", details: err.message });
+  }
+}
 
 module.exports = { listRepos, createRepo, getCommits, getDiff, getRepoTree, getFileContent, getBranches};

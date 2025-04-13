@@ -304,13 +304,12 @@ function PRDetail() {
   const fetchBranchDiff = async () => {
     if (pr && pr.repository && pr.sourceBranch && pr.targetBranch) {
       try {
-        const { data } = await api.get(`/repos/${pr.repository}/diff`, {
+        const { data } = await api.get(`/repos/${pr.repository}/pr-diff`, {
           params: {
             sourceBranch: pr.sourceBranch,
             targetBranch: pr.targetBranch,
           },
         });
-        console.log("Files with differences:", data.files); // Debug log
         setFilesWithDiffs(data.files || []);
       } catch (err) {
         console.error("Error fetching branch diff:", err);

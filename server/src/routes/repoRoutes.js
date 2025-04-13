@@ -5,6 +5,7 @@ const {
   createRepo, 
   getCommits, 
   getDiff,
+  getPRDiff,
   getRepoTree,
   getFileContent,
   getBranches
@@ -12,7 +13,8 @@ const {
 const authMiddleware = require("../middleware/authMiddleware");
 
 router.get("/:repoName/branches", getBranches);
-
+router.get("/:repoName/pr-diff", getPRDiff); // New endpoint for PR diffs
+router.get("/:repoName/diff", getDiff); // Existing endpoint for Repository Management
 // Endpoint to list all repositories
 router.get("/", listRepos);
 

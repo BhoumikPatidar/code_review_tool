@@ -226,8 +226,8 @@ function RepoExplorer() {
           params: {
             commit1: selectedCommit1,
             commit2: selectedCommit2,
-            sourceBranch: currentBranch, // Pass the current branch as the source branch
-            targetBranch: currentBranch, // Pass the current branch as the target branch
+            sourceBranch: currentBranch,
+            targetBranch: currentBranch,
           },
         });
         setDiff(data.diff);
