@@ -5,6 +5,9 @@ const Code = require('./Code');
 const Comment = require('./Comment');
 const PullRequest = require('./PullRequest');
 const PRComment = require('./PRComment');
+const Repository = require('./Repository');
+const RepositoryPermission = require('./RepositoryPermission');
+const RepositoryInvitation = require('./RepositoryInvitation');
 
 // Sync all models with the database
 const syncDatabase = async () => {
@@ -16,4 +19,15 @@ const syncDatabase = async () => {
   }
 };
 
-module.exports = { sequelize, User, Code, Comment, PullRequest, PRComment, syncDatabase };
+module.exports = { 
+  sequelize, 
+  User, 
+  Code, 
+  Comment, 
+  PullRequest, 
+  PRComment, 
+  Repository,
+  RepositoryPermission,
+  RepositoryInvitation,
+  syncDatabase 
+};

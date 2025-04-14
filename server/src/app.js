@@ -10,8 +10,9 @@ const codeRoutes = require('./routes/codeRoutes');
 const commentRoutes = require('./routes/commentRoutes');
 const repoRoutes = require('./routes/repoRoutes');
 const prRoutes = require('./routes/prRoutes');
-const prCommentRoutes = require('./routes/prCommentRoutes');  // New
-const userRoutes = require("./routes/userRoutes");
+const prCommentRoutes = require('./routes/prCommentRoutes');
+const userRoutes = require('./routes/userRoutes');
+
 const app = express();
 
 app.use(cors());
@@ -28,8 +29,8 @@ app.use('/api/codes', codeRoutes);
 app.use('/api/comments', commentRoutes);
 app.use('/api/repos', repoRoutes);
 app.use('/api/prs', prRoutes);
-app.use('/api/prcomments', prCommentRoutes); // Mount the PR comments endpoint
-app.use("/api/user", userRoutes);
+app.use('/api/prcomments', prCommentRoutes);
+app.use('/api/user', userRoutes);
 
 // Sync database and start the server
 syncDatabase()
