@@ -17,7 +17,7 @@ import FileViewer from "./pages/FileViewer";
 import LoadingSpinner from "./context/LoadingSpinner";
 import { useEffect } from "react";
 import Permissions from "./pages/Permissions";
-import Navbar from "./components/Navbar";
+import Navbar from "./components/NavBar";
 
 // Component to handle header rendering based on auth
 function AppContent() {
@@ -36,7 +36,7 @@ function AppContent() {
 
   return (
     <div style={{ width: "100%" }}>
-      {isAuthenticated && <Navbar />}
+      {isAuthenticated && <NavBar />}
       {isAuthenticated && <Header />}
       <Routes>
         {/* Public routes */}
