@@ -40,34 +40,41 @@ exports.getAllPermissions = (req, res) => {
 const { exec } = require("child_process");
 
 exports.updatePermissions = (req, res) => {
-  const { sshKey, repo, permissions } = req.body;
-
-  if (!sshKey || !repo || !permissions) {
-    return res.status(400).json({ error: "SSH key, repo, and permissions are required" });
-  }
-
-  try {
-    const permissionsData = JSON.parse(fs.readFileSync(PERMISSIONS_FILE, "utf8"));
-
-    if (!permissionsData[sshKey]) {
-      permissionsData[sshKey] = {};
+    const { sshKey, repo, permissions } = req.body;
+  
+    if (!sshKey || !repo || !permissions || !Array.isArray(permissions)) {
+      return res.status(400).json({ error: "SSH key, repo, and permissions array are required" });
     }
-
-    permissionsData[sshKey][repo] = permissions;
-
-    fs.writeFileSync(PERMISSIONS_FILE, JSON.stringify(permissionsData, null, 2));
-
-    // Trigger the hook application script
-    exec("/var/lib/git/apply-hooks.sh", (error, stdout, stderr) => {
-      if (error) {
-        console.error(`Error applying hooks: ${error.message}`);
-        return res.status(500).json({ error: "Error applying hooks" });
+  
+    // Validate permissions array
+    const validActions = ["clone", "push"];
+    const invalidPermissions = permissions.filter(action => !validActions.includes(action));
+    if (invalidPermissions.length > 0) {
+      return res.status(400).json({ error: `Invalid permissions: ${invalidPermissions.join(", ")}` });
+    }
+  
+    try {
+      const permissionsData = JSON.parse(fs.readFileSync(PERMISSIONS_FILE, "utf8"));
+  
+      if (!permissionsData[sshKey]) {
+        permissionsData[sshKey] = {};
       }
-      console.log(`Hook application output: ${stdout}`);
-      res.json({ message: "Permissions updated and hooks applied successfully" });
-    });
-  } catch (err) {
-    console.error("Error updating permissions file:", err);
-    res.status(500).json({ error: "Error updating permissions file" });
-  }
-};
+  
+      permissionsData[sshKey][repo] = permissions;
+  
+      fs.writeFileSync(PERMISSIONS_FILE, JSON.stringify(permissionsData, null, 2));
+  
+      // Trigger the hook application script
+      exec("/var/lib/git/apply-hooks.sh", (error, stdout, stderr) => {
+        if (error) {
+          console.error(`Error applying hooks: ${error.message}`);
+          return res.status(500).json({ error: "Error applying hooks" });
+        }
+        console.log(`Hook application output: ${stdout}`);
+        res.json({ message: "Permissions updated and hooks applied successfully" });
+      });
+    } catch (err) {
+      console.error("Error updating permissions file:", err);
+      res.status(500).json({ error: "Error updating permissions file" });
+    }
+  };
