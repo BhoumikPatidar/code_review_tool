@@ -1,37 +1,39 @@
+// server/src/routes/repoRoutes.js
 const express = require("express");
 const router = express.Router();
 const { 
   listRepos, 
-  createRepo, 
+  createRepo,
+  getRepository, 
   getCommits, 
   getDiff,
-  getPRDiff,
   getRepoTree,
   getFileContent,
-  getBranches
-} = require("../controllers/repoController");
+  getBranches,
+  managePermissions,
+  getCollaborators
+} = require("../controllers/repositoryController");
 const authMiddleware = require("../middleware/authMiddleware");
 
-router.get("/:repoName/branches", getBranches);
-router.get("/:repoName/pr-diff", getPRDiff); // New endpoint for PR diffs
-router.get("/:repoName/diff", getDiff); // Existing endpoint for Repository Management
-// Endpoint to list all repositories
+// Apply authentication middleware to all routes
+router.use(authMiddleware);
+
+// Repository listing and creation
 router.get("/", listRepos);
+router.post("/create", createRepo);
 
-// Endpoint to create a new repository
-router.post("/create", authMiddleware, createRepo);
+// Repository details
+router.get("/:repoId", getRepository);
 
-// Endpoint to get commit history for a specific repository
+// Repository collaborators management
+router.get("/:repoId/collaborators", getCollaborators);
+router.post("/:repoId/permissions", managePermissions);
+
+// Git operations
 router.get("/:repoName/commits", getCommits);
-
-// // Endpoint to get diff for a specific commit in a repository
-// router.get("/:repoName/diff/:commitSha", getDiff);
-
-// Endpoint to get repository tree
+router.get("/:repoName/branches", getBranches);
 router.get("/:repoName/tree", getRepoTree);
-
-// Endpoint to get file content
 router.get("/:repoName/file", getFileContent);
-
+router.get("/:repoName/diff", getDiff);
 
 module.exports = router;
