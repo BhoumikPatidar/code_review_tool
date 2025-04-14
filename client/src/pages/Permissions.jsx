@@ -8,6 +8,7 @@ function Permissions() {
   const [newPermissions, setNewPermissions] = useState("");
   const [message, setMessage] = useState("");
 
+  const predefinedPermissions = ["clone", "push"];
   // Fetch all permissions
   const fetchPermissions = async () => {
     try {
@@ -75,12 +76,19 @@ function Permissions() {
         value={repo}
         onChange={(e) => setRepo(e.target.value)}
       />
-      <input
-        type="text"
-        placeholder="Permissions (comma-separated)"
-        value={newPermissions}
-        onChange={(e) => setNewPermissions(e.target.value)}
-      />
+      <div>
+        <h4>Select Permissions:</h4>
+        {predefinedPermissions.map((permission) => (
+          <label key={permission} style={{ marginRight: "1rem" }}>
+            <input
+              type="checkbox"
+              checked={selectedPermissions.includes(permission)}
+              onChange={() => togglePermission(permission)}
+            />
+            {permission}
+          </label>
+        ))}
+      </div>
       <button onClick={handleUpdate}>Update</button>
     </div>
   );
