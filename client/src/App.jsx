@@ -36,7 +36,7 @@ function AppContent() {
 
   return (
     <div style={{ width: "100%" }}>
-      {isAuthenticated && <NavBar />}
+      {isAuthenticated && <Navbar />}
       {isAuthenticated && <Header />}
       <Routes>
         {/* Public routes */}

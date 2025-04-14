@@ -37,7 +37,8 @@ exports.getAllPermissions = (req, res) => {
   }
 };
 
-// Update permissions for a specific SSH key (admin only)
+const { exec } = require("child_process");
+
 exports.updatePermissions = (req, res) => {
   const { sshKey, repo, permissions } = req.body;
 
@@ -55,7 +56,16 @@ exports.updatePermissions = (req, res) => {
     permissionsData[sshKey][repo] = permissions;
 
     fs.writeFileSync(PERMISSIONS_FILE, JSON.stringify(permissionsData, null, 2));
-    res.json({ message: "Permissions updated successfully" });
+
+    // Trigger the hook application script
+    exec("/var/lib/git/apply-hooks.sh", (error, stdout, stderr) => {
+      if (error) {
+        console.error(`Error applying hooks: ${error.message}`);
+        return res.status(500).json({ error: "Error applying hooks" });
+      }
+      console.log(`Hook application output: ${stdout}`);
+      res.json({ message: "Permissions updated and hooks applied successfully" });
+    });
   } catch (err) {
     console.error("Error updating permissions file:", err);
     res.status(500).json({ error: "Error updating permissions file" });
