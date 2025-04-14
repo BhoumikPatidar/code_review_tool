@@ -6,7 +6,8 @@ const { User } = require('../models');
 // Path to the git user's authorized_keys file.
 const AUTHORIZED_KEYS_PATH = "/home/git/.ssh/authorized_keys";
 // Path to the SSH wrapper script
-const GIT_AUTH_WRAPPER = "/path/to/git-auth-wrapper.sh";
+const GIT_AUTH_WRAPPER = "/home/git/code_review_tool/server/scripts/git-auth-wrapper.sh";
+
 
 exports.updateSshKey = async (req, res) => {
   console.log("updateSshKey called with body:", req.body);

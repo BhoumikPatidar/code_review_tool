@@ -12,7 +12,7 @@ const {
   getBranches,
   managePermissions,
   getCollaborators
-} = require("../controllers/repositoryController");
+} = require("../controllers/repoController");
 const authMiddleware = require("../middleware/authMiddleware");
 
 // Apply authentication middleware to all routes

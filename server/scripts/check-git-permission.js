@@ -10,7 +10,8 @@
  */
 
 // Load environment variables
-require('dotenv').config({ path: '/path/to/your/server/.env' });
+require('dotenv').config({ path: '/home/git/code_review_tool/server/.env' });
+
 
 // Import database models
 const { sequelize, User, Repository, RepositoryPermission } = require('../src/models');
