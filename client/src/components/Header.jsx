@@ -1,22 +1,14 @@
 // src/components/Header.jsx
 import { Link } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
 
 function Header() {
-  const { currentUser, logout, loading } = useAuth();
+  const user = JSON.parse(localStorage.getItem("user"));
 
-  // Improved logout handler that uses the AuthContext logout function
-  const handleLogout = (e) => {
-    e.preventDefault(); // Prevent any default behavior
-    if (window.confirm("Are you sure you want to log out?")) {
-      logout(); // This should use the AuthContext logout function
-    }
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    location.href = "/";
   };
-
-  // Don't show header when loading or not authenticated
-  if (loading || !currentUser) {
-    return null;
-  }
 
   return (
     <header
@@ -25,33 +17,56 @@ function Header() {
         justifyContent: "space-between",
         alignItems: "center",
         padding: "1rem",
-        background: "darkgray",
+        background: "#24292e",
+        color: "white",
       }}
     >
       <h2>Code Review Tool</h2>
-      <nav>
-        <Link to="/prs" style={{ marginRight: "1rem" }}>
-          Pull Requests
-        </Link>
-        <Link to="/repositories" style={{ marginRight: "1rem" }}>
+      <nav style={{ display: "flex", alignItems: "center" }}>
+        <Link to="/repos" style={{
+          marginRight: "1rem",
+          color: "white",
+          textDecoration: "none",
+          padding: "6px 12px",
+          borderRadius: "4px",
+          backgroundColor: "#2da44e"
+        }}>
           Repositories
         </Link>
-        <Link to="/sshkey" style={{ marginRight: "1rem" }}>
+        <Link to="/prs" style={{ 
+          marginRight: "1rem",
+          color: "white",
+          textDecoration: "none"
+        }}>
+          Pull Requests
+        </Link>
+        <Link to="/sshkey" style={{ 
+          marginRight: "1rem",
+          color: "white", 
+          textDecoration: "none"
+        }}>
           SSH Key
         </Link>
-        <span>
-          Welcome, {currentUser.username}
-          <button 
-            onClick={handleLogout} 
-            style={{ 
-              marginLeft: "1rem",
-              backgroundColor: "#f44336",
-              color: "white"
-            }}
-          >
-            Logout
-          </button>
-        </span>
+        {user && (
+          <div style={{ display: "flex", alignItems: "center" }}>
+            <span style={{ marginRight: "1rem" }}>
+              Welcome, {user.username}
+            </span>
+            <button 
+              onClick={handleLogout} 
+              style={{ 
+                padding: "6px 12px",
+                backgroundColor: "transparent",
+                color: "white",
+                border: "1px solid rgba(255, 255, 255, 0.2)",
+                borderRadius: "4px",
+                cursor: "pointer"
+              }}
+            >
+              Logout
+            </button>
+          </div>
+        )}
       </nav>
     </header>
   );

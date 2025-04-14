@@ -1,8 +1,5 @@
 // src/App.jsx
-import { Routes, Route, useLocation } from "react-router-dom";
-import { AuthProvider } from "./context/AuthContext";
-import { useAuth } from "./context/AuthContext";
-import ProtectedRoute from "./components/ProtectedRoute";
+import { Routes, Route } from "react-router-dom";
 import Header from "./components/Header";
 import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
@@ -14,101 +11,43 @@ import PRDetail from "./pages/PRDetail";
 import SshKeyUpdate from "./pages/SshKeyUpdate";
 import RepoExplorer from "./pages/RepoExplorer";
 import FileViewer from "./pages/FileViewer";
-import LoadingSpinner from "./context/LoadingSpinner";
-import { useEffect } from "react";
 
-// Component to handle header rendering based on auth
-function AppContent() {
-  const { isAuthenticated, loading } = useAuth();
-  const location = useLocation();
+// New repository-related imports
+import RepositoryDashboard from "./pages/RepositoryDashboard";
+import CreateRepository from "./pages/CreateRepository";
+import RepositorySettings from "./pages/RepositorySettings";
 
-  // Log navigation for debugging purposes
-  useEffect(() => {
-    console.log(`Navigated to: ${location.pathname}`);
-    console.log(`Auth status: ${isAuthenticated ? 'Authenticated' : 'Not authenticated'}`);
-  }, [location, isAuthenticated]);
+function App() {
+  const token = localStorage.getItem("token");
+  const user = localStorage.getItem("user");
 
-  if (loading) {
-    return <LoadingSpinner />;
-  }
+  console.log(token);
+  console.log(user);
 
   return (
     <div style={{ width: "100%" }}>
-      {isAuthenticated && <Header />}
+      {token && user && <Header />}
       <Routes>
-        {/* Public routes */}
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/prs" element={<PRDashboard />} />
+        <Route path="/prs/:id" element={<PRDetail />} />
         
-        {/* Protected routes */}
-        <Route 
-          path="/dashboard" 
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/prs" 
-          element={
-            <ProtectedRoute>
-              <PRDashboard />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/prs/:id" 
-          element={
-            <ProtectedRoute>
-              <PRDetail />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/repositories" 
-          element={
-            <ProtectedRoute>
-              <RepositoryManagement />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/sshkey" 
-          element={
-            <ProtectedRoute>
-              <SshKeyUpdate />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/explore/:repoName" 
-          element={
-            <ProtectedRoute>
-              <RepoExplorer />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/view/:repoName" 
-          element={
-            <ProtectedRoute>
-              <FileViewer />
-            </ProtectedRoute>
-          } 
-        />
+        {/* Legacy repository routes - can be removed later */}
+        <Route path="/repositories" element={<RepositoryManagement />} />
+        
+        {/* New repository routes */}
+        <Route path="/repos" element={<RepositoryDashboard />} />
+        <Route path="/repos/new" element={<CreateRepository />} />
+        <Route path="/repos/:repoId/settings" element={<RepositorySettings />} />
+        
+        <Route path="/sshkey" element={<SshKeyUpdate />} />
+        <Route path="/explore/:repoName" element={<RepoExplorer />} />
+        <Route path="/view/:repoName" element={<FileViewer />} />
       </Routes>
     </div>
-  );
-}
-
-// Main App component with AuthProvider
-function App() {
-  return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
   );
 }
 
