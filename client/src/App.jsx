@@ -16,6 +16,8 @@ import RepoExplorer from "./pages/RepoExplorer";
 import FileViewer from "./pages/FileViewer";
 import LoadingSpinner from "./context/LoadingSpinner";
 import { useEffect } from "react";
+import Permissions from "./pages/Permissions";
+import Navbar from "./components/Navbar";
 
 // Component to handle header rendering based on auth
 function AppContent() {
@@ -34,6 +36,7 @@ function AppContent() {
 
   return (
     <div style={{ width: "100%" }}>
+      {isAuthenticated && <Navbar />}
       {isAuthenticated && <Header />}
       <Routes>
         {/* Public routes */}
@@ -47,6 +50,14 @@ function AppContent() {
           element={
             <ProtectedRoute>
               <Dashboard />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/permissions" 
+          element={
+            <ProtectedRoute>
+              <Permissions />
             </ProtectedRoute>
           } 
         />
