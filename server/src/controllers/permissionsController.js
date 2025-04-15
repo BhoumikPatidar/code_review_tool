@@ -116,7 +116,7 @@ const { exec } = require("child_process");
 // };
 
 exports.updatePermissions = (req, res) => {
-  const { sshKey, repo, permissions, branch } = req.body; // Add branch to the request body
+  const { sshKey, repo, permissions, branch } = req.body;
 
   if (!sshKey || !repo || !permissions || !Array.isArray(permissions)) {
     return res.status(400).json({ error: "SSH key, repo, and permissions array are required" });
@@ -136,12 +136,12 @@ exports.updatePermissions = (req, res) => {
       permissionsData[sshKey] = {};
     }
 
-    permissionsData[sshKey][repo] = { permissions, branch }; // Store branch-level permissions
+    permissionsData[sshKey][repo] = { permissions, branch };
 
     fs.writeFileSync(PERMISSIONS_FILE, JSON.stringify(permissionsData, null, 2));
 
     // Update gitolite.conf
-    updateGitoliteConf(permissionsData);
+    updateGitoliteConf(sshKey, repo, permissions.join(" "), branch);
 
     res.json({ message: "Permissions updated successfully." });
   } catch (err) {
@@ -187,28 +187,56 @@ exports.updatePermissions = (req, res) => {
   //     throw new Error("Failed to update gitolite configuration.");
   //   }
   // }
-
-  function updateGitoliteConf(permissionsData) {
+  const KEYDIR_PATH = path.join(GITOLITE_ADMIN_PATH, "keydir");
+  
+  function updateGitoliteConf(sshKey, repo, permissions, branch) {
     try {
-      let gitoliteConf = "";
-  
-      for (const [sshKey, repos] of Object.entries(permissionsData)) {
-        for (const [repo, { permissions, branch }] of Object.entries(repos)) {
-          const permissionLevel = permissions.includes("RW+") ? "RW+" :
-                                  permissions.includes("W") ? "RW" :
-                                  permissions.includes("R") ? "R" : "";
-  
-          if (permissions.includes("branch") && branch) {
-            gitoliteConf += `repo ${repo}\n    ${permissionLevel} refs/heads/${branch} = ${sshKey}\n`;
-          } else {
-            gitoliteConf += `repo ${repo}\n    ${permissionLevel} = ${sshKey}\n`;
-          }
-        }
+      // Ensure the SSH key is added to the keydir
+      const keyName = sshKey.split(" ")[2]; // Extract the key identifier (e.g., email or name)
+      const keyFilePath = path.join(KEYDIR_PATH, `${keyName}.pub`);
+      if (!fs.existsSync(keyFilePath)) {
+        fs.writeFileSync(keyFilePath, sshKey, "utf8");
+        console.log(`Added SSH key to keydir: ${keyFilePath}`);
       }
   
-      fs.writeFileSync(GITOLITE_CONF_PATH, gitoliteConf, "utf8");
+      // Read the existing gitolite.conf file
+      let gitoliteConf = fs.readFileSync(GITOLITE_CONF_PATH, "utf8").split("\n");
   
-      execSync(`cd ${GITOLITE_ADMIN_PATH} && git add conf/gitolite.conf && git commit -m "Update permissions" && git push`, {
+      // Ensure the admin entry is preserved
+      if (!gitoliteConf.some((line) => line.startsWith("repo gitolite-admin"))) {
+        gitoliteConf.unshift("repo gitolite-admin\n    RW+     =   admin");
+      }
+  
+      // Check if the repo already exists in the config
+      const repoIndex = gitoliteConf.findIndex((line) => line.startsWith(`repo ${repo}`));
+      if (repoIndex !== -1) {
+        // Update existing repo entry
+        const permissionLineIndex = repoIndex + 1;
+        const permissionLine = gitoliteConf[permissionLineIndex];
+        const newPermission = branch
+          ? `${permissions} refs/heads/${branch} = ${keyName}`
+          : `${permissions} = ${keyName}`;
+  
+        if (permissionLine.includes(keyName)) {
+          // Update the existing permission for the SSH key
+          gitoliteConf[permissionLineIndex] = permissionLine.replace(/=.*/, `= ${keyName}`);
+        } else {
+          // Append the new permission for the SSH key
+          gitoliteConf.splice(permissionLineIndex + 1, 0, `    ${newPermission}`);
+        }
+      } else {
+        // Add a new repo entry
+        const newRepoEntry = branch
+          ? `repo ${repo}\n    ${permissions} refs/heads/${branch} = ${keyName}`
+          : `repo ${repo}\n    ${permissions} = ${keyName}`;
+        gitoliteConf.push(newRepoEntry);
+      }
+  
+      // Write the updated config back to gitolite.conf
+      fs.writeFileSync(GITOLITE_CONF_PATH, gitoliteConf.join("\n"), "utf8");
+  
+      // Commit and push the changes to the gitolite-admin repo
+      execSync(`cd ${GITOLITE_ADMIN_PATH} && git add . && git commit -m "Update permissions" && git push`, {
         stdio: "inherit",
       });
   
