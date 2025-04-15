@@ -19,19 +19,22 @@ module.exports = async (req, res, next) => {
     console.log("Decoded token:", decoded);
 
     // Load the user-to-SSH mapping
-    const userToSsh = JSON.parse(fs.readFileSync(USER_TO_SSH_FILE, "utf8"));
-    const keyHash = userToSsh[decoded.id]; // Use the decoded ID to find the SSH key hash
+    const userToSsh = fs.existsSync(USER_TO_SSH_FILE)
+      ? JSON.parse(fs.readFileSync(USER_TO_SSH_FILE, "utf8"))
+      : {};
+
+    const keyHash = userToSsh[decoded.username]; // Use the username to find the SSH key hash
 
     if (!keyHash) {
-      console.log(`User not found in user_to_ssh.json for ID: ${decoded.id}`);
+      console.error(`User not found in user_to_ssh.json for username: ${decoded.username}`);
       return res.status(401).json({ message: "User not found, authorization denied" });
     }
 
     // Attach user to the request object
     req.user = {
       id: decoded.id,
-      username: decoded.username, // Ensure username is included in the token
-      keyHash: keyHash, // Attach the SSH key hash
+      username: decoded.username,
+      keyHash: keyHash,
     };
 
     console.log("Auth middleware called. User attached to req:", req.user);

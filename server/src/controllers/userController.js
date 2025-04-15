@@ -28,6 +28,12 @@ exports.updateSshKey = async (req, res) => {
       userToSsh = fileContent ? JSON.parse(fileContent) : {};
     }
 
+    // Ensure req.user is populated
+    if (!req.user || !req.user.username) {
+      console.error("Error: req.user or username is missing");
+      return res.status(401).json({ error: "User is not authenticated" });
+    }
+
     // Update the mapping
     userToSsh[req.user.username] = keyHash;
 
