@@ -141,8 +141,8 @@ exports.updatePermissions = (req, res) => {
 
     fs.writeFileSync(PERMISSIONS_FILE, JSON.stringify(permissionsData, null, 2));
 
-    // Update gitolite.conf
-    updateGitoliteConf(sshKey, repo, permissions.join(" "), branch);
+    // Pass permissions as an array
+    updateGitoliteConf(sshKey, repo, permissions, branch);
 
     res.json({ message: "Permissions updated successfully." });
   } catch (err) {
