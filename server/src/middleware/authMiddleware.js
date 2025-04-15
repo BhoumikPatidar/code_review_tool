@@ -47,6 +47,8 @@ require("dotenv").config();
 
 
 
+
+
 module.exports = async (req, res, next) => {
   try {
     console.log("\n=== AUTH MIDDLEWARE START ===");
@@ -54,27 +56,29 @@ module.exports = async (req, res, next) => {
 
     const authHeader = req.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {
-      console.error("No Bearer token found");
+      console.error("❌ No Bearer token found");
       return res.status(401).json({ error: "No token provided" });
     }
 
     const token = authHeader.split(' ')[1];
-    console.log("Token received:", token ? "Present" : "Missing");
+    console.log("Token received:", token ? "✅ Present" : "❌ Missing");
 
     // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    console.log("Decoded token:", { 
-      username: decoded.username,
-      keyHash: decoded.keyHash 
-    });
+    console.log("Decoded token data:", decoded);
+
+    if (!decoded.username) {
+      console.error("❌ No username in token");
+      return res.status(401).json({ error: "Invalid token - missing username" });
+    }
 
     // Set user data in req.user
     req.user = {
       username: decoded.username,
-      keyHash: decoded.keyHash
+      keyHash: decoded.keyHash // Include keyHash if present
     };
 
-    console.log("Set req.user:", req.user);
+    console.log("✅ Set req.user:", req.user);
     console.log("=== AUTH MIDDLEWARE END ===\n");
     next();
   } catch (error) {
