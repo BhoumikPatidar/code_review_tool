@@ -215,24 +215,29 @@ exports.updatePermissions = (req, res) => {
       if (repoIndex !== -1) {
         // Update existing repo entry
         const permissionLineIndex = repoIndex + 1;
-        const permissionLine = gitoliteConf[permissionLineIndex];
-        const newPermission = branch
-          ? `${permissions} refs/heads/${branch} = ${keyHash}`
-          : `${permissions} = ${keyHash}`;
   
-        if (permissionLine.includes(keyHash)) {
-          // Update the existing permission for the SSH key
-          gitoliteConf[permissionLineIndex] = permissionLine.replace(/=.*/, `= ${keyHash}`);
-        } else {
-          // Append the new permission for the SSH key
+        // Remove any existing permissions for this SSH key
+        gitoliteConf = gitoliteConf.filter(
+          (line) => !line.includes(`= ${keyHash}`) || !line.startsWith("    ")
+        );
+  
+        // Add new permissions for this SSH key
+        permissions.forEach((perm) => {
+          const newPermission = branch
+            ? `${perm} refs/heads/${branch} = ${keyHash}`
+            : `${perm} = ${keyHash}`;
           gitoliteConf.splice(permissionLineIndex + 1, 0, `    ${newPermission}`);
-        }
+        });
       } else {
         // Add a new repo entry
-        const newRepoEntry = branch
-          ? `repo ${repo}\n    ${permissions} refs/heads/${branch} = ${keyHash}`
-          : `repo ${repo}\n    ${permissions} = ${keyHash}`;
-        gitoliteConf.push(newRepoEntry);
+        const newRepoEntry = [`repo ${repo}`];
+        permissions.forEach((perm) => {
+          const newPermission = branch
+            ? `    ${perm} refs/heads/${branch} = ${keyHash}`
+            : `    ${perm} = ${keyHash}`;
+          newRepoEntry.push(newPermission);
+        });
+        gitoliteConf.push(newRepoEntry.join("\n"));
       }
   
       // Write the updated config back to gitolite.conf
