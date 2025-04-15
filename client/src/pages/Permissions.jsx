@@ -114,6 +114,7 @@ function Permissions() {
   const fetchPermissions = async () => {
     try {
       const { data } = await api.get("/permissions/all");
+      console.log("Getched permissions: = ", data);
       setPermissions(data);
     } catch (err) {
       console.error("Error fetching permissions:", err);
@@ -137,11 +138,17 @@ function Permissions() {
   // };
   const handleUpdate = async () => {
     try {
+      console.log("Updating permissions with:", {
+        sshKey,
+        repo,
+        permissions: selectedPermissions,
+        branch,
+      });
       await api.post("/permissions/update", {
         sshKey,
         repo,
         permissions: selectedPermissions,
-        branch, // Include branch in the request
+        branch,
       });
       setMessage("Permissions updated successfully");
       fetchPermissions();
@@ -177,8 +184,8 @@ function Permissions() {
           </tr>
         </thead>
         <tbody>
-          {Object.entries(permissions).map(([key, repos]) =>
-            Object.entries(repos).map(([repoName, { permissions, branch }]) => (
+          {Object.entries(permissions || {}).map(([key, repos]) =>
+            Object.entries(repos || {}).map(([repoName, { permissions, branch }]) => (
               <tr key={`${key}-${repoName}`}>
                 <td>{key}</td>
                 <td>{repoName}</td>
