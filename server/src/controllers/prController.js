@@ -218,9 +218,19 @@ const mergePR = async (req, res) => {
         console.log("Attempting merge...");
       
         // First try analyze merge
-        const annotatedCommit = await NodeGit.AnnotatedCommit.fromRef(repo, sourceRef);
+        // const annotatedCommit = await NodeGit.AnnotatedCommit.fromRef(repo, sourceRef);
+        // const result = await NodeGit.Merge.analysis(repo, [annotatedCommit]);
+        // console.log("Merge analysis result:", result);
+        let annotatedCommit;
+        try {
+          annotatedCommit = await NodeGit.AnnotatedCommit.fromRef(repo, sourceRef);
+          if (!annotatedCommit) throw new Error("Invalid annotated commit");
+        } catch (err) {
+          throw new Error("Failed to create annotated commit: " + err.message);
+        }
+
         const result = await NodeGit.Merge.analysis(repo, [annotatedCommit]);
-        console.log("Merge analysis result:", result);
+
 
         // Check if merge is possible
         if (result & NodeGit.Merge.ANALYSIS.NORMAL) {
