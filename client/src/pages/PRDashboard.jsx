@@ -25,6 +25,57 @@ function PRDashboard() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
+  const [mergeError, setMergeError] = useState("");
+  const { currentUser } = useAuth();
+  const navigate = useNavigate();
+
+  const checkMergePermissions = async (repository) => {
+    try {
+      const response = await api.get('/permissions/user');
+      const userPermissions = response.data;
+      
+      // Check if user has RW+ permissions for this repo
+      console.log(userPermissions);
+      return userPermissions?.repositories?.some(repo => 
+        repo.name === repository && 
+        repo.permissions.includes('RW+')
+      );
+    } catch (error) {
+      console.error('Error checking permissions:', error);
+      return false;
+    }
+  };
+
+  const handleMerge = async (id) => {
+    try {
+      setMergeError("");
+      
+      // Get PR details first
+      const { data: pr } = await api.get(`/prs/${id}`);
+      
+      // Check permissions
+      const hasPermission = await checkMergePermissions(pr.repository);
+      if (!hasPermission) {
+        setMergeError("You don't have the required permissions to merge this PR");
+        return;
+      }
+
+      // Attempt merge
+      await api.post(`/prs/${id}/merge`);
+      setMessage("PR merged successfully!");
+      fetchPRs(); // Refresh the list
+    } catch (error) {
+      console.error("Error merging PR:", error);
+      if (error.response?.status === 409) {
+        // Handle merge conflicts
+        navigate(`/prs/${id}/conflicts`, { 
+          state: { conflicts: error.response.data.conflicts }
+        });
+      } else {
+        setMergeError(error.response?.data?.error || "Error merging PR");
+      }
+    }
+  };
   // Fetch all PRs from backend
   const fetchPRs = async () => {
     setLoading(true);
@@ -83,29 +134,19 @@ function PRDashboard() {
     }
   };
 
-  // Merge a PR
-  const handleMerge = async (id) => {
-    try {
-      await api.post(`/prs/${id}/merge`);
-      setMessage("PR merged!");
-      fetchPRs();
-    } catch (error) {
-      console.error("Error merging PR:", error);
-      setMessage("Error merging PR");
-    }
-  };
-
   return (
     <div style={{ padding: "2rem" }}>
       <h2>Pull Request Dashboard</h2>
-      {message && <p>{message}</p>}
+      {/* {message && <p>{message}</p>} */}
+      {message && <p style={{ color: 'green' }}>{message}</p>}
+      {mergeError && <p style={{ color: 'red' }}>{mergeError}</p>}
 
       <h3>Create New PR</h3>
       <form onSubmit={handleCreatePR} style={{ marginBottom: "2rem" }}>
         <TextField
           // type="text"
           name="repository"
-          label="Repository (e.g., trial2.git)"
+          label="Repository (e.g., trial)"
           value={formData.repository}
           onChange={handleChange}
           required
@@ -247,6 +288,53 @@ function PRDashboard() {
           </table> */}
         </>
       )}
+      <table style={{ width: "100%", marginTop: "2rem" }}>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Repository</th>
+            <th>Source Branch</th>
+            <th>Target Branch</th>
+            <th>Title</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {prs.map((pr) => (
+            <tr key={pr.id}>
+              <td>{pr.id}</td>
+              <td>{pr.repository}</td>
+              <td>{pr.sourceBranch}</td>
+              <td>{pr.targetBranch}</td>
+              <td>{pr.title}</td>
+              <td>{pr.status}</td>
+              <td>
+                {pr.status === 'open' && (
+                  <button onClick={() => handleApprove(pr.id)}>
+                    Approve
+                  </button>
+                )}
+                {pr.status === 'approved' && (
+                  <button 
+                    onClick={() => handleMerge(pr.id)}
+                    style={{ 
+                      backgroundColor: "#238636",
+                      color: "white",
+                      border: "none",
+                      padding: "5px 10px",
+                      borderRadius: "4px",
+                      cursor: "pointer"
+                    }}
+                  >
+                    Merge
+                  </button>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

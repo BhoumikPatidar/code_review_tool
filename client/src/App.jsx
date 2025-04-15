@@ -122,6 +122,14 @@ function AppContent() {
           } 
         />
       </Routes>
+      <Route 
+        path="/prs/:id/conflicts" 
+        element={
+          <ProtectedRoute>
+            <PRConflicts />
+          </ProtectedRoute>
+        } 
+      />
     </div>
   );
 }
