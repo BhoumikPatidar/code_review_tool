@@ -274,48 +274,53 @@ const mergePR = async (req, res) => {
       });
 
       // Check if branches exist
-      console.log("Checking branches existence...");
-      const targetExists = await repo.getBranch(`refs/remotes/origin/${pr.targetBranch}`)
-        .catch(() => false);
-      const sourceExists = await repo.getBranch(`refs/remotes/origin/${pr.sourceBranch}`)
-        .catch(() => false);
+      console.log("Checking branches existence and getting references...");
+      const targetRef = await repo.getReference(`refs/remotes/origin/${pr.targetBranch}`)
+        .catch(() => null);
+      const sourceRef = await repo.getReference(`refs/remotes/origin/${pr.sourceBranch}`)
+        .catch(() => null);
 
-      if (!targetExists) {
+      if (!targetRef) {
         throw new Error(`Target branch '${pr.targetBranch}' not found`);
       }
-      if (!sourceExists) {
+      if (!sourceRef) {
         throw new Error(`Source branch '${pr.sourceBranch}' not found`);
       }
 
+      // Get commits for both branches
+      console.log("Getting commits for both branches...");
+      const targetCommit = await repo.getReferenceCommit(targetRef);
+      const sourceCommit = await repo.getReferenceCommit(sourceRef);
+      
+      console.log("Target commit:", targetCommit.id().toString());
+      console.log("Source commit:", sourceCommit.id().toString());
+
+      // Set up target branch
       console.log("Setting up target branch...");
       let localTargetBranch;
       try {
-        // Try to get existing branch first
         localTargetBranch = await repo.getBranch(pr.targetBranch);
         console.log("Found existing target branch");
       } catch (e) {
-        // Branch doesn't exist locally, create it
         console.log("Creating new target branch");
         localTargetBranch = await repo.createBranch(pr.targetBranch, targetCommit, false);
       }
 
-      // Force checkout of target branch
+      // Force checkout target branch
       console.log("Checking out target branch:", pr.targetBranch);
       await repo.checkoutBranch(localTargetBranch, {
         checkoutStrategy: NodeGit.Checkout.STRATEGY.FORCE
       });
 
-      // Handle source branch setup
+      // Set up source branch
       console.log("Setting up source branch...");
-      let sourceBranch;
+      let localSourceBranch;
       try {
-        // Try to get existing branch first
-        sourceBranch = await repo.getBranch(pr.sourceBranch);
+        localSourceBranch = await repo.getBranch(pr.sourceBranch);
         console.log("Found existing source branch");
       } catch (e) {
-        // Branch doesn't exist locally, create it
         console.log("Creating new source branch");
-        sourceBranch = await repo.createBranch(pr.sourceBranch, sourceCommit, false);
+        localSourceBranch = await repo.createBranch(pr.sourceBranch, sourceCommit, false);
       }
 
       // Try to merge
