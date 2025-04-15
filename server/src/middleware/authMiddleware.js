@@ -1,12 +1,8 @@
-const fs = require("fs");
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
 
-const SSH_TO_USER_FILE = "/var/lib/git/ssh_to_user.json";
-
 module.exports = async (req, res, next) => {
   console.log("\n=== AUTH MIDDLEWARE START ===");
-  console.log("Full request headers:", req.headers);
   
   try {
     const authHeader = req.header("Authorization");
