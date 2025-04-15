@@ -39,6 +39,9 @@ function Header() {
         <Link to="/sshkey" style={{ marginRight: "1rem" }}>
           SSH Key
         </Link>
+        <Link to="/permissions" style={{ marginRight: "1rem" }}>
+          Manage Permissions
+        </Link> {/* Added Manage Permissions link */}
         <span>
           Welcome, {currentUser.username}
           <button 

@@ -6,7 +6,7 @@ const os = require('os');
 const PullRequest = require("../models/PullRequest");
 
 // Define the base directory where your repositories are located
-const REPO_BASE_PATH = "/var/lib/git";
+const REPO_BASE_PATH = "/home/git/repositories";
 
 /**
  * List all repositories (directories) in REPO_BASE_PATH.
