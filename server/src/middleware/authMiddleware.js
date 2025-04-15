@@ -1,6 +1,5 @@
 const fs = require("fs");
 const jwt = require("jsonwebtoken");
-const crypto = require("crypto");
 require("dotenv").config();
 
 const SSH_TO_USER_FILE = "/var/lib/git/ssh_to_user.json";
@@ -18,24 +17,24 @@ module.exports = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     console.log("Decoded token:", decoded);
 
-    // Load the SSH-to-user mapping
+    // Load the user-to-SSH mapping
     console.log("Reading ssh_to_user.json...");
-    const sshToUser = fs.existsSync(SSH_TO_USER_FILE)
+    const userToSsh = fs.existsSync(SSH_TO_USER_FILE)
       ? JSON.parse(fs.readFileSync(SSH_TO_USER_FILE, "utf8"))
       : {};
     
-    console.log("Contents of ssh_to_user.json:", sshToUser);
+    console.log("Contents of ssh_to_user.json:", userToSsh);
 
-    const user = sshToUser[decoded.username];
-    if (!user || !user.keyHash) {
-      console.error(`User or keyHash not found for username: ${decoded.username}`);
+    const keyHash = userToSsh[decoded.username];
+    if (!keyHash) {
+      console.error(`SSH hash not found for username: ${decoded.username}`);
       return res.status(401).json({ message: "User not found or SSH key not set" });
     }
 
     // Attach user to the request object
     req.user = {
       username: decoded.username,
-      keyHash: user.keyHash // This is already the hash of the SSH key
+      keyHash: keyHash // Direct hash value from the mapping
     };
 
     console.log("Auth middleware successfully attached user data:", req.user);

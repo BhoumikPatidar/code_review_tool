@@ -22,31 +22,26 @@ exports.register = async (req, res) => {
     // Hash the SSH key
     const keyHash = crypto.createHash("sha256").update(publicKey).digest("hex");
 
-    // Load or initialize the SSH-to-user mapping
-    let sshToUser = {};
+    // Load or initialize the user-to-SSH mapping
+    let userToSsh = {};
     if (fs.existsSync(SSH_TO_USER_FILE)) {
-      console.log("Reading ssh_to_user.json...");
       const fileContent = fs.readFileSync(SSH_TO_USER_FILE, "utf8");
-      sshToUser = fileContent ? JSON.parse(fileContent) : {};
-    } else {
-      console.log("ssh_to_user.json does not exist. Creating a new file...");
+      userToSsh = fileContent ? JSON.parse(fileContent) : {};
     }
 
     // Check if the username already exists
-    if (sshToUser[username]) {
+    if (userToSsh[username]) {
       return res.status(400).json({ message: "User already exists" });
     }
 
     // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Add the user to the mapping
-    sshToUser[username] = { keyHash, password: hashedPassword };
+    // Add the mapping (username -> SSH hash)
+    userToSsh[username] = keyHash;
 
     // Save the updated mapping
-    console.log("Updating ssh_to_user.json...");
-    fs.writeFileSync(SSH_TO_USER_FILE, JSON.stringify(sshToUser, null, 2));
-    console.log("ssh_to_user.json updated successfully.");
+    fs.writeFileSync(SSH_TO_USER_FILE, JSON.stringify(userToSsh, null, 2));
 
     // Generate a token
     const token = jwt.sign({ username }, process.env.JWT_SECRET, { expiresIn: "1d" });
