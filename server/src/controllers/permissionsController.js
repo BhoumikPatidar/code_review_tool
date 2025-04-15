@@ -32,8 +32,9 @@ exports.getUserPermissions = (req, res) => {
 
   try {
     // Get permissions using keyHash from authenticated user
-    const keyHash = req.user.keyHash;
+    const keyHash = req.user?.keyHash;
     if (!keyHash) {
+      console.error("No keyHash found in user object:", req.user);
       return res.status(400).json({ error: "No key hash found for user" });
     }
 
@@ -47,7 +48,7 @@ exports.getUserPermissions = (req, res) => {
     const userPermissions = permissions[keyHash] || {};
     const repositories = Object.keys(userPermissions).map(repo => ({
       name: repo,
-      permissions: userPermissions[repo].permissions
+      permissions: userPermissions[repo].permissions || []
     }));
 
     console.log("Found repositories with permissions:", repositories);

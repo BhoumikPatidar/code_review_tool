@@ -34,22 +34,26 @@ function PRDashboard() {
   const checkMergePermissions = async (repository) => {
     try {
       console.log("Checking merge permissions for repo:", repository);
-      // Remove '/api' prefix
-      const response = await api.get('/permissions/user');
-      const userPermissions = response.data;
+      const response = await api.get('/permissions/user', {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        }
+      });
       
-      console.log("User permissions:", userPermissions);
+      console.log("User permissions response:", response.data);
+      const userPermissions = response.data;
   
       // Check if user has RW+ permissions for this repo
       const hasPermission = userPermissions?.repositories?.some(repo => 
         repo.name === repository && 
+        Array.isArray(repo.permissions) && 
         repo.permissions.includes('RW+')
       );
   
       console.log(`Has RW+ permission for ${repository}:`, hasPermission);
       return hasPermission;
     } catch (error) {
-      console.error('Error checking permissions:', error);
+      console.error('Error checking permissions:', error.response || error);
       return false;
     }
   };
