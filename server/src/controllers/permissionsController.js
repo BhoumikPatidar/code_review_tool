@@ -116,6 +116,34 @@ const { exec } = require("child_process");
 //   }
 // };
 
+function hashSshKey(sshKey) {
+  return crypto.createHash("sha256").update(sshKey).digest("hex");
+}
+
+// Fetch permissions for a specific SSH key
+exports.getUserPermissions = (req, res) => {
+  const sshKey = req.query.sshKey;
+
+  if (!sshKey) {
+    return res.status(400).json({ error: "SSH key is required" });
+  }
+
+  try {
+    const sshKeyHash = hashSshKey(sshKey);
+    const permissions = JSON.parse(fs.readFileSync(PERMISSIONS_FILE, "utf8"));
+    const userPermissions = permissions[sshKeyHash] || {};
+    const repositories = Object.keys(userPermissions).map((repo) => ({
+      name: repo,
+      permissions: userPermissions[repo],
+    }));
+
+    res.json({ repositories });
+  } catch (err) {
+    console.error("Error reading permissions file:", err);
+    res.status(500).json({ error: "Error reading permissions file" });
+  }
+};
+
 exports.updatePermissions = (req, res) => {
   const { sshKey, repo, permissions, branch } = req.body;
 
@@ -125,24 +153,24 @@ exports.updatePermissions = (req, res) => {
 
   // Validate permissions array
   const validActions = ["R", "W", "RW+", "branch"];
-  const invalidPermissions = permissions.filter(action => !validActions.includes(action));
+  const invalidPermissions = permissions.filter((action) => !validActions.includes(action));
   if (invalidPermissions.length > 0) {
     return res.status(400).json({ error: `Invalid permissions: ${invalidPermissions.join(", ")}` });
   }
 
   try {
-    const permissionsData = JSON.parse(fs.readFileSync(PERMISSIONS_FILE, "utf8"));
+    const sshKeyHash = hashSshKey(sshKey);
+    const permissionsData = fs.existsSync(PERMISSIONS_FILE)
+      ? JSON.parse(fs.readFileSync(PERMISSIONS_FILE, "utf8"))
+      : {};
 
-    if (!permissionsData[sshKey]) {
-      permissionsData[sshKey] = {};
+    if (!permissionsData[sshKeyHash]) {
+      permissionsData[sshKeyHash] = {};
     }
 
-    permissionsData[sshKey][repo] = { permissions, branch };
+    permissionsData[sshKeyHash][repo] = { permissions, branch };
 
     fs.writeFileSync(PERMISSIONS_FILE, JSON.stringify(permissionsData, null, 2));
-
-    // Pass permissions as an array
-    updateGitoliteConf(sshKey, repo, permissions, branch);
 
     res.json({ message: "Permissions updated successfully." });
   } catch (err) {

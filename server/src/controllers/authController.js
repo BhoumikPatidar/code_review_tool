@@ -60,26 +60,34 @@ exports.register = async (req, res) => {
 exports.login = async (req, res) => {
   try {
     const { username, password } = req.body;
+    console.log("Login request received. Username:", username);
 
     // Load the SSH-to-user mapping
+    console.log("Reading ssh_to_user.json...");
     const sshToUser = fs.existsSync(SSH_TO_USER_FILE)
       ? JSON.parse(fs.readFileSync(SSH_TO_USER_FILE, "utf8"))
       : {};
+    console.log("Contents of ssh_to_user.json:", sshToUser);
 
     const user = sshToUser[username];
     if (!user) {
+      console.error(`User not found in ssh_to_user.json for username: ${username}`);
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
     // Verify the password
+    console.log("Verifying password for user:", username);
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
+      console.error("Password verification failed for user:", username);
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
     // Generate a token
+    console.log("Generating JWT token for user:", username);
     const token = jwt.sign({ username }, process.env.JWT_SECRET, { expiresIn: "1d" });
 
+    console.log("Login successful. Token generated:", token);
     res.json({ token, user: { username } });
   } catch (error) {
     console.error("Login error:", error);

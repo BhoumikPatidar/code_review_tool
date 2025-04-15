@@ -48,21 +48,26 @@ const SSH_TO_USER_FILE = "/var/lib/git/ssh_to_user.json";
 //   }
 // }
 
+function hashSshKey(sshKey) {
+  return crypto.createHash("sha256").update(sshKey).digest("hex");
+}
+
 async function listRepos(req, res) {
   try {
-    // Check if req.user exists
+    console.log("listRepos called. Checking req.user...");
     if (!req.user || !req.user.keyHash) {
       console.error("Error: req.user or keyHash is missing");
       return res.status(400).json({ error: "User is not authenticated" });
     }
 
-    // Debug log
     console.log(`User ${req.user.username} has SSH key hash: ${req.user.keyHash}`);
 
     // Load the permissions file
+    console.log("Reading permissions.json...");
     const permissions = fs.existsSync(PERMISSIONS_FILE)
       ? JSON.parse(fs.readFileSync(PERMISSIONS_FILE, "utf8"))
       : {};
+    console.log("Contents of permissions.json:", permissions);
 
     // Find repositories the user has access to
     const accessibleRepos = [];
@@ -72,15 +77,12 @@ async function listRepos(req, res) {
       }
     }
 
-    // If no repositories are found, return a message
     if (accessibleRepos.length === 0) {
       console.log(`No repositories found for user ${req.user.username}`);
       return res.json({ repositories: [], message: "No repositories available to you" });
     }
 
-    // Debug log
     console.log(`Accessible repositories for user ${req.user.username}: ${JSON.stringify(accessibleRepos)}`);
-
     res.json({ repositories: accessibleRepos });
   } catch (err) {
     console.error("Error listing repositories:", err);
