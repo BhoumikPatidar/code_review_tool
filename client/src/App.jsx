@@ -44,6 +44,9 @@ function AppContent() {
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/repositories" element={<Repositories />} />
+        <Route path="/explore/:repoName" element={<RepoExplorer />} />
+        <Route path="/view/:repoName" element={<FileViewer />} />
         
         {/* Protected routes */}
         <Route 

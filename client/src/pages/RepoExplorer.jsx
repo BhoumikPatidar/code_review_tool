@@ -247,6 +247,32 @@ function RepoExplorer() {
     fetchTree();
   }, [repoName, currentPath, currentBranch]);
 
+
+  const renderBreadcrumbs = () => {
+    const parts = currentPath.split("/").filter(Boolean);
+    const crumbs = [{ label: "Root", path: "" }];
+    let accum = "";
+    parts.forEach(part => {
+      accum += "/" + part;
+      crumbs.push({ label: part, path: accum.slice(1) });
+    });
+  
+    return (
+      <div style={{ marginBottom: "20px" }}>
+        {crumbs.map((crumb, idx) => (
+          <span key={idx}>
+            {idx > 0 && " / "}
+            <Link 
+              to={`/explore/${repoName}?path=${crumb.path}`}
+              style={{ color: "#0366d6" }}
+            >
+              {crumb.label}
+            </Link>
+          </span>
+        ))}
+      </div>
+    );
+  };
   return (
     <div style={{ padding: "2rem" }}>
       <h2>Repository: {repoName}</h2>
