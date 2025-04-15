@@ -41,22 +41,24 @@ function PRDashboard() {
         return false;
       }
   
-      // Get user permissions from permissions.json
+      // Get user permissions
       const response = await api.get('/permissions/user');
       console.log("Permissions response:", response.data);
   
       const { repositories } = response.data;
       
-      // Check if user has RW+ permissions for this repository
+      // Find repository permissions
       const repoPermissions = repositories.find(repo => repo.name === repository);
-      const hasPermission = repoPermissions?.permissions.includes('RW+');
+      console.log("Repository permissions:", repoPermissions);
   
-      console.log(`Repository permissions for ${repository}:`, repoPermissions);
-      console.log(`Has RW+ permission: ${hasPermission}`);
+      // Check for RW+ permission
+      const hasPermission = repoPermissions?.permissions?.includes('RW+');
+      console.log(`Has RW+ permission for ${repository}: ${hasPermission}`);
   
       return hasPermission || false;
     } catch (error) {
       console.error('Error checking permissions:', error);
+      console.error('Error details:', error.response?.data || error.message);
       return false;
     }
   };
