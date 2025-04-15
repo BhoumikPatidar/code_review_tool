@@ -17,24 +17,16 @@ module.exports = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     console.log("Decoded token:", decoded);
 
-    // Load the user-to-SSH mapping
-    console.log("Reading ssh_to_user.json...");
-    const userToSsh = fs.existsSync(SSH_TO_USER_FILE)
-      ? JSON.parse(fs.readFileSync(SSH_TO_USER_FILE, "utf8"))
-      : {};
-    
-    console.log("Contents of ssh_to_user.json:", userToSsh);
-
-    const keyHash = userToSsh[decoded.username];
-    if (!keyHash) {
-      console.error(`SSH hash not found for username: ${decoded.username}`);
-      return res.status(401).json({ message: "User not found or SSH key not set" });
+    // Since we now include keyHash in the token, we can use it directly
+    if (!decoded.username || !decoded.keyHash) {
+      console.error("Token missing username or keyHash");
+      return res.status(401).json({ message: "Invalid token" });
     }
 
     // Attach user to the request object
     req.user = {
       username: decoded.username,
-      keyHash: keyHash // Direct hash value from the mapping
+      keyHash: decoded.keyHash
     };
 
     console.log("Auth middleware successfully attached user data:", req.user);
