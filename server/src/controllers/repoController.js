@@ -169,9 +169,9 @@ async function getCommits(req, res) {
     // If no HEAD, try to get the commit from the 'main' branch.
     if (!headCommit) {
       try {
-        headCommit = await repo.getBranchCommit('main');
+        headCommit = await repo.getBranchCommit('master');
       } catch (e) {
-        console.warn("getBranchCommit('main') failed:", e.message);
+        console.warn("getBranchCommit('master') failed:", e.message);
         return res.json({ commits: [] });
       }
     }
@@ -255,7 +255,7 @@ async function getCommits(req, res) {
 async function getRepoTree(req, res) {
   const repoName = req.params.repoName;
   const queryPath = req.query.path || '';
-  const branch = req.query.branch || 'main';
+  const branch = req.query.branch || 'master';
 
   try {
     const actualRepoName = repoName.endsWith('.git') ? repoName : `${repoName}.git`;
@@ -365,7 +365,7 @@ async function getFileContent(req, res) {
       const branchName = (await repo.getCurrentBranch()).shorthand();
       headCommit = await repo.getBranchCommit(branchName);
     } catch (e) {
-      headCommit = await repo.getBranchCommit('main');
+      headCommit = await repo.getBranchCommit('master');
     }
 
     const tree = await headCommit.getTree();
@@ -499,8 +499,8 @@ async function getDiff(req, res) {
   }
 
   try {
-    const actualSourceBranch = sourceBranch || "main"; // Default to "main" if not provided
-    const actualTargetBranch = targetBranch || "main"; // Default to "main" if not provided
+    const actualSourceBranch = sourceBranch || "master"; // Default to "main" if not provided
+    const actualTargetBranch = targetBranch || "master"; // Default to "main" if not provided
 
     const actualRepoName = repoName.endsWith('.git') ? repoName : `${repoName}.git`;
     const repoPath = path.join(REPO_BASE_PATH, actualRepoName);
