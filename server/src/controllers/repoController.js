@@ -8,6 +8,7 @@ const PullRequest = require("../models/PullRequest");
 // Define the base directory where your repositories are located
 const REPO_BASE_PATH = "/home/git/repositories";
 const SSH_TO_USER_FILE = "/var/lib/git/ssh_to_user.json";
+const PERMISSIONS_FILE = "/var/lib/git/permissions.json";
 
 /**
  * List all repositories (directories) in REPO_BASE_PATH.
