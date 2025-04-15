@@ -126,7 +126,15 @@ function AppContent() {
   );
 }
 
-// Main App component with AuthProvider
+// // Main App component with AuthProvider
+// function App() {
+//   return (
+//     <AuthProvider>
+//       <AppContent />
+//     </AuthProvider>
+//   );
+// }
+
 function App() {
   return (
     <AuthProvider>
