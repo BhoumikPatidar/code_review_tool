@@ -106,8 +106,9 @@ function Permissions() {
   const [repo, setRepo] = useState("");
   const [selectedPermissions, setSelectedPermissions] = useState([]); // Define selectedPermissions
   const [message, setMessage] = useState("");
+  const [branch, setBranch] = useState(""); // Add this line
 
-  const predefinedPermissions = ["clone", "push"];
+  const predefinedPermissions = ["R", "W", "RW+", "branch"];
 
   // Fetch all permissions
   const fetchPermissions = async () => {
@@ -120,12 +121,27 @@ function Permissions() {
   };
 
   // Update permissions for a specific SSH key
+  // const handleUpdate = async () => {
+  //   try {
+  //     await api.post("/permissions/update", {
+  //       sshKey,
+  //       repo,
+  //       permissions: selectedPermissions, // Use selectedPermissions
+  //     });
+  //     setMessage("Permissions updated successfully");
+  //     fetchPermissions();
+  //   } catch (err) {
+  //     console.error("Error updating permissions:", err);
+  //     setMessage("Error updating permissions");
+  //   }
+  // };
   const handleUpdate = async () => {
     try {
       await api.post("/permissions/update", {
         sshKey,
         repo,
-        permissions: selectedPermissions, // Use selectedPermissions
+        permissions: selectedPermissions,
+        branch, // Include branch in the request
       });
       setMessage("Permissions updated successfully");
       fetchPermissions();
@@ -162,11 +178,11 @@ function Permissions() {
         </thead>
         <tbody>
           {Object.entries(permissions).map(([key, repos]) =>
-            Object.entries(repos).map(([repoName, perms]) => (
+            Object.entries(repos).map(([repoName, { permissions, branch }]) => (
               <tr key={`${key}-${repoName}`}>
                 <td>{key}</td>
                 <td>{repoName}</td>
-                <td>{perms.join(", ")}</td>
+                <td>{permissions.join(", ")} {branch ? `(Branch: ${branch})` : ""}</td>
               </tr>
             ))
           )}
@@ -198,6 +214,14 @@ function Permissions() {
           </label>
         ))}
       </div>
+      {selectedPermissions.includes("branch") && (
+        <input
+          type="text"
+          placeholder="Branch Name"
+          value={branch}
+          onChange={(e) => setBranch(e.target.value)}
+        />
+      )}
       <button onClick={handleUpdate}>Update</button>
     </div>
   );
