@@ -27,24 +27,32 @@ const PERMISSIONS_FILE = "/var/lib/git/permissions.json";
 //   }
 // };
 
-exports.getUserPermissions = (req, res) => {
-  console.log("Getting permissions for user:", req.user);
-
+exports.getUserPermissions = async (req, res) => {
   try {
-    // Get permissions using keyHash from authenticated user
-    const keyHash = req.user?.keyHash;
-    if (!keyHash) {
-      console.error("No keyHash found in user object:", req.user);
-      return res.status(400).json({ error: "No key hash found for user" });
+    console.log("=== GET USER PERMISSIONS START ===");
+    console.log("Request user:", req.user);
+
+    // Get the authenticated user's keyHash
+    if (!req.user || !req.user.keyHash) {
+      console.error("No authenticated user or keyHash found");
+      return res.status(400).json({ 
+        error: "Authentication required",
+        details: "No user keyHash found" 
+      });
     }
 
+    const keyHash = req.user.keyHash;
+    console.log("Using keyHash:", keyHash);
+
+    // Read permissions file
     const permissions = fs.existsSync(PERMISSIONS_FILE)
       ? JSON.parse(fs.readFileSync(PERMISSIONS_FILE, "utf8"))
       : {};
-
-    console.log("Full permissions data:", permissions);
-    console.log("Looking for permissions with keyHash:", keyHash);
     
+    console.log("All permissions:", permissions);
+    console.log("Looking for user permissions with keyHash:", keyHash);
+
+    // Get user's permissions
     const userPermissions = permissions[keyHash] || {};
     const repositories = Object.keys(userPermissions).map(repo => ({
       name: repo,
@@ -52,10 +60,15 @@ exports.getUserPermissions = (req, res) => {
     }));
 
     console.log("Found repositories with permissions:", repositories);
-    res.json({ repositories });
+    console.log("=== GET USER PERMISSIONS END ===");
+
+    return res.json({ repositories });
   } catch (err) {
-    console.error("Error reading permissions:", err);
-    res.status(500).json({ error: "Error reading permissions file" });
+    console.error("Error in getUserPermissions:", err);
+    return res.status(500).json({ 
+      error: "Error reading permissions",
+      details: err.message 
+    });
   }
 };
 
