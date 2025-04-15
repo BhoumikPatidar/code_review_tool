@@ -67,22 +67,31 @@ async function listRepos(req, res) {
     const permissions = fs.existsSync(PERMISSIONS_FILE)
       ? JSON.parse(fs.readFileSync(PERMISSIONS_FILE, "utf8"))
       : {};
+    
     console.log("Contents of permissions.json:", permissions);
+    console.log("Looking for permissions with key hash:", req.user.keyHash);
 
     // Find repositories the user has access to
     const accessibleRepos = [];
     if (permissions[req.user.keyHash]) {
+      console.log("Found permissions for user's key hash");
       for (const repoName of Object.keys(permissions[req.user.keyHash])) {
-        accessibleRepos.push({ name: repoName });
+        accessibleRepos.push({
+          name: repoName,
+          permissions: permissions[req.user.keyHash][repoName].permissions
+        });
       }
     }
 
     if (accessibleRepos.length === 0) {
       console.log(`No repositories found for user ${req.user.username}`);
-      return res.json({ repositories: [], message: "No repositories available to you" });
+      return res.json({
+        repositories: [],
+        message: "No repositories available to you"
+      });
     }
 
-    console.log(`Accessible repositories for user ${req.user.username}: ${JSON.stringify(accessibleRepos)}`);
+    console.log(`Found accessible repositories for user ${req.user.username}:`, accessibleRepos);
     res.json({ repositories: accessibleRepos });
   } catch (err) {
     console.error("Error listing repositories:", err);
