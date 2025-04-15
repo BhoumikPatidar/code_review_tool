@@ -5,21 +5,29 @@ require("dotenv").config();
 const SSH_TO_USER_FILE = "/var/lib/git/ssh_to_user.json";
 
 module.exports = async (req, res, next) => {
+  console.log("\n=== AUTH MIDDLEWARE START ===");
+  console.log("Full request headers:", req.headers);
+  
   try {
-    const token = req.header("Authorization")?.split(" ")[1];
-    console.log("Auth middleware called. Token:", token);
+    const authHeader = req.header("Authorization");
+    console.log("Authorization header:", authHeader);
+
+    const token = authHeader?.split(" ")[1];
+    console.log("Extracted token:", token);
 
     if (!token) {
-      console.log("No token provided");
+      console.log("❌ No token provided");
       return res.status(401).json({ message: "No token, authorization denied" });
     }
 
+    console.log("Attempting to verify token...");
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    console.log("Decoded token:", decoded);
+    console.log("✅ Decoded token:", JSON.stringify(decoded, null, 2));
 
-    // Since we now include keyHash in the token, we can use it directly
     if (!decoded.username || !decoded.keyHash) {
-      console.error("Token missing username or keyHash");
+      console.error("❌ Token missing required fields:");
+      console.error("Username present:", !!decoded.username);
+      console.error("KeyHash present:", !!decoded.keyHash);
       return res.status(401).json({ message: "Invalid token" });
     }
 
@@ -29,10 +37,13 @@ module.exports = async (req, res, next) => {
       keyHash: decoded.keyHash
     };
 
-    console.log("Auth middleware successfully attached user data:", req.user);
+    console.log("✅ Successfully attached user data to req.user:", req.user);
+    console.log("=== AUTH MIDDLEWARE END ===\n");
     next();
   } catch (error) {
-    console.error("Auth middleware error:", error);
+    console.error("❌ Auth middleware error:", error);
+    console.error("Error stack:", error.stack);
+    console.log("=== AUTH MIDDLEWARE END WITH ERROR ===\n");
     res.status(401).json({ message: "Token is not valid" });
   }
 };

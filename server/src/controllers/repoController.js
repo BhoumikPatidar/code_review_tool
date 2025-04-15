@@ -53,29 +53,43 @@ function hashSshKey(sshKey) {
 }
 
 async function listRepos(req, res) {
+  console.log("\n=== LIST REPOS CONTROLLER START ===");
+  console.log("Full request object:", {
+    headers: req.headers,
+    user: req.user,
+    method: req.method,
+    path: req.path
+  });
+
   try {
-    console.log("listRepos called. Checking req.user...");
+    console.log("Checking req.user object...");
+    console.log("req.user:", req.user);
+    
     if (!req.user || !req.user.keyHash) {
-      console.error("Error: req.user or keyHash is missing");
+      console.error("❌ Error: req.user or keyHash is missing");
+      console.error("req.user present:", !!req.user);
+      console.error("keyHash present:", req.user?.keyHash);
       return res.status(400).json({ error: "User is not authenticated" });
     }
 
-    console.log(`User ${req.user.username} has SSH key hash: ${req.user.keyHash}`);
+    console.log("✅ Valid user data found:", {
+      username: req.user.username,
+      keyHash: req.user.keyHash
+    });
 
-    // Load the permissions file
     console.log("Reading permissions.json...");
     const permissions = fs.existsSync(PERMISSIONS_FILE)
       ? JSON.parse(fs.readFileSync(PERMISSIONS_FILE, "utf8"))
       : {};
     
-    console.log("Contents of permissions.json:", permissions);
+    console.log("Contents of permissions.json:", JSON.stringify(permissions, null, 2));
     console.log("Looking for permissions with key hash:", req.user.keyHash);
 
-    // Find repositories the user has access to
     const accessibleRepos = [];
     if (permissions[req.user.keyHash]) {
-      console.log("Found permissions for user's key hash");
+      console.log("✅ Found permissions for user's key hash");
       for (const repoName of Object.keys(permissions[req.user.keyHash])) {
+        console.log(`Adding repo: ${repoName}`);
         accessibleRepos.push({
           name: repoName,
           permissions: permissions[req.user.keyHash][repoName].permissions
@@ -84,17 +98,21 @@ async function listRepos(req, res) {
     }
 
     if (accessibleRepos.length === 0) {
-      console.log(`No repositories found for user ${req.user.username}`);
+      console.log(`ℹ️ No repositories found for user ${req.user.username}`);
+      console.log("=== LIST REPOS CONTROLLER END ===\n");
       return res.json({
         repositories: [],
         message: "No repositories available to you"
       });
     }
 
-    console.log(`Found accessible repositories for user ${req.user.username}:`, accessibleRepos);
+    console.log("✅ Found repositories:", JSON.stringify(accessibleRepos, null, 2));
+    console.log("=== LIST REPOS CONTROLLER END ===\n");
     res.json({ repositories: accessibleRepos });
   } catch (err) {
-    console.error("Error listing repositories:", err);
+    console.error("❌ Error listing repositories:", err);
+    console.error("Error stack:", err.stack);
+    console.log("=== LIST REPOS CONTROLLER END WITH ERROR ===\n");
     res.status(500).json({ error: "Error listing repositories" });
   }
 }

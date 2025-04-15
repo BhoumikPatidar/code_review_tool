@@ -8,32 +8,39 @@ require("dotenv").config();
 const SSH_TO_USER_FILE = "/var/lib/git/ssh_to_user.json";
 
 exports.login = async (req, res) => {
+  console.log("\n=== LOGIN CONTROLLER START ===");
   try {
     const { username, password } = req.body;
-    console.log("Login request received. Username:", username);
+    console.log("Login attempt for username:", username);
 
-    // Load the SSH-to-user mapping
     console.log("Reading ssh_to_user.json...");
     const userToSsh = fs.existsSync(SSH_TO_USER_FILE)
       ? JSON.parse(fs.readFileSync(SSH_TO_USER_FILE, "utf8"))
       : {};
-    console.log("Contents of ssh_to_user.json:", userToSsh);
+    
+    console.log("Contents of ssh_to_user.json:", JSON.stringify(userToSsh, null, 2));
 
-    // In ssh_to_user.json, username maps directly to keyHash
     const keyHash = userToSsh[username];
+    console.log("Found keyHash for user:", keyHash);
+
     if (!keyHash) {
-      console.error(`User not found in ssh_to_user.json for username: ${username}`);
+      console.error(`❌ User not found in ssh_to_user.json for username: ${username}`);
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
-    // Generate a token that includes both username and keyHash
-    console.log("Generating JWT token for user:", username);
+    console.log("Generating JWT token with payload:", { username, keyHash });
     const token = jwt.sign({ username, keyHash }, process.env.JWT_SECRET, { expiresIn: "1d" });
+    console.log("✅ Token generated:", token);
 
-    console.log("Login successful. Token generated:", token);
-    res.json({ token, user: { username, keyHash } });
+    const response = { token, user: { username, keyHash } };
+    console.log("Sending response:", JSON.stringify(response, null, 2));
+    console.log("=== LOGIN CONTROLLER END ===\n");
+    
+    res.json(response);
   } catch (error) {
-    console.error("Login error:", error);
+    console.error("❌ Login error:", error);
+    console.error("Error stack:", error.stack);
+    console.log("=== LOGIN CONTROLLER END WITH ERROR ===\n");
     res.status(500).json({ message: "Failed to log in" });
   }
 };
