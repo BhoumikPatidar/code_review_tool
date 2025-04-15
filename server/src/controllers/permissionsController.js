@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
 
 const PERMISSIONS_FILE = "/var/lib/git/permissions.json";
 
@@ -191,9 +192,11 @@ exports.updatePermissions = (req, res) => {
   
   function updateGitoliteConf(sshKey, repo, permissions, branch) {
     try {
+      // Generate a unique hash for the SSH key
+      const keyHash = crypto.createHash("sha256").update(sshKey).digest("hex");
+      const keyFilePath = path.join(KEYDIR_PATH, `${keyHash}.pub`);
+  
       // Ensure the SSH key is added to the keydir
-      const keyName = sshKey.split(" ")[2]; // Extract the key identifier (e.g., email or name)
-      const keyFilePath = path.join(KEYDIR_PATH, `${keyName}.pub`);
       if (!fs.existsSync(keyFilePath)) {
         fs.writeFileSync(keyFilePath, sshKey, "utf8");
         console.log(`Added SSH key to keydir: ${keyFilePath}`);
@@ -214,12 +217,12 @@ exports.updatePermissions = (req, res) => {
         const permissionLineIndex = repoIndex + 1;
         const permissionLine = gitoliteConf[permissionLineIndex];
         const newPermission = branch
-          ? `${permissions} refs/heads/${branch} = ${keyName}`
-          : `${permissions} = ${keyName}`;
+          ? `${permissions} refs/heads/${branch} = ${keyHash}`
+          : `${permissions} = ${keyHash}`;
   
-        if (permissionLine.includes(keyName)) {
+        if (permissionLine.includes(keyHash)) {
           // Update the existing permission for the SSH key
-          gitoliteConf[permissionLineIndex] = permissionLine.replace(/=.*/, `= ${keyName}`);
+          gitoliteConf[permissionLineIndex] = permissionLine.replace(/=.*/, `= ${keyHash}`);
         } else {
           // Append the new permission for the SSH key
           gitoliteConf.splice(permissionLineIndex + 1, 0, `    ${newPermission}`);
@@ -227,8 +230,8 @@ exports.updatePermissions = (req, res) => {
       } else {
         // Add a new repo entry
         const newRepoEntry = branch
-          ? `repo ${repo}\n    ${permissions} refs/heads/${branch} = ${keyName}`
-          : `repo ${repo}\n    ${permissions} = ${keyName}`;
+          ? `repo ${repo}\n    ${permissions} refs/heads/${branch} = ${keyHash}`
+          : `repo ${repo}\n    ${permissions} = ${keyHash}`;
         gitoliteConf.push(newRepoEntry);
       }
   
