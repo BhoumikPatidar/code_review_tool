@@ -60,7 +60,9 @@ async function listRepos(req, res) {
     console.log(`User ${req.user.username} has SSH key hash: ${req.user.keyHash}`);
 
     // Load the permissions file
-    const permissions = JSON.parse(fs.readFileSync(PERMISSIONS_FILE, "utf8"));
+    const permissions = fs.existsSync(PERMISSIONS_FILE)
+      ? JSON.parse(fs.readFileSync(PERMISSIONS_FILE, "utf8"))
+      : {};
 
     // Find repositories the user has access to
     const accessibleRepos = [];
@@ -68,6 +70,12 @@ async function listRepos(req, res) {
       for (const repoName of Object.keys(permissions[req.user.keyHash])) {
         accessibleRepos.push({ name: repoName });
       }
+    }
+
+    // If no repositories are found, return a message
+    if (accessibleRepos.length === 0) {
+      console.log(`No repositories found for user ${req.user.username}`);
+      return res.json({ repositories: [], message: "No repositories available to you" });
     }
 
     // Debug log
