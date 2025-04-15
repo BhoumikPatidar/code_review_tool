@@ -327,27 +327,52 @@ const mergePR = async (req, res) => {
       try {
         // Perform merge
         console.log("Attempting merge...");
+      
+        // First try analyze merge result
+        const result = await NodeGit.Merge.analysis(repo, sourceCommit);
+        console.log("Merge analysis result:", result);
+  
+        // Perform merge commits
         const mergeResult = await NodeGit.Merge.commits(repo, targetCommit, sourceCommit, {
           fileFavor: NodeGit.Merge.FILE_FAVOR.NORMAL
         });
-        
+        console.log("Merge result:", mergeResult);
+  
+        // Get and analyze index
         const index = await repo.index();
+        console.log("Index has conflicts:", index.hasConflicts());
+  
         if (index.hasConflicts()) {
           console.log("Merge conflicts detected");
           const conflicts = await getConflictInfo(repo, pr.sourceBranch, pr.targetBranch);
           throw { status: 409, conflicts };
         }
-
+  
+        // Write index to prepare for commit
+        await index.write();
+        console.log("Index written");
+  
+        // Create tree from index
+        const treeOid = await index.writeTree();
+        console.log("Tree created:", treeOid.toString());
+  
+        // Get parent commits
+        const parents = [targetCommit, sourceCommit];
+        console.log("Parent commits:", parents.map(c => c.id().toString()));
+  
         // Create merge commit
         console.log("Creating merge commit...");
         const sig = repo.defaultSignature();
-        const commitOid = await repo.createCommitOnHead(
-          [], 
+        const commitOid = await repo.createCommit(
+          "HEAD",
           sig,
           sig,
-          `Merge PR #${pr.id} from ${pr.sourceBranch} into ${pr.targetBranch}`
+          `Merge PR #${pr.id} from ${pr.sourceBranch} into ${pr.targetBranch}`,
+          treeOid,
+          parents
         );
-
+        console.log("Merge commit created:", commitOid.toString());
+  
         // Push changes
         console.log("Pushing changes...");
         const remote = await repo.getRemote("origin");
@@ -356,12 +381,12 @@ const mergePR = async (req, res) => {
             certificateCheck: () => 0
           }
         });
-
+  
         // Update PR status
         pr.status = "merged";
         await pr.save();
         console.log("PR marked as merged");
-
+  
         res.json({ status: 'merged', message: "PR merged successfully" });
       } catch (mergeError) {
         console.error("Merge error:", mergeError);
