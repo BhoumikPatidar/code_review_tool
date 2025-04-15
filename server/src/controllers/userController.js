@@ -21,10 +21,11 @@ exports.updateSshKey = async (req, res) => {
     // Hash the SSH key
     const keyHash = crypto.createHash("sha256").update(publicKey).digest("hex");
 
-    // Load the existing mapping file
+    // Load or initialize the mapping file
     let sshToUser = {};
     if (fs.existsSync(SSH_TO_USER_FILE)) {
-      sshToUser = JSON.parse(fs.readFileSync(SSH_TO_USER_FILE, "utf8"));
+      const fileContent = fs.readFileSync(SSH_TO_USER_FILE, "utf8");
+      sshToUser = fileContent ? JSON.parse(fileContent) : {};
     }
 
     // Update the mapping
@@ -36,6 +37,6 @@ exports.updateSshKey = async (req, res) => {
     res.json({ message: "SSH key updated successfully" });
   } catch (error) {
     console.error("Error updating SSH key:", error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: "Failed to update SSH key" });
   }
 };
