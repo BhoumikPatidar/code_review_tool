@@ -287,14 +287,24 @@ const mergePR = async (req, res) => {
         throw new Error(`Source branch '${pr.sourceBranch}' not found`);
       }
 
+      console.log("Getting target branch commit...");
+      const targetRef = await repo.getReference(`refs/remotes/origin/${pr.targetBranch}`);
+      const targetCommit = await repo.getReferenceCommit(targetRef);
+      console.log("Target commit:", targetCommit.id().toString());
+
       // Checkout target branch
       console.log("Checking out target branch:", pr.targetBranch);
-      await repo.checkoutBranch(pr.targetBranch);
+      const localTargetBranch = await repo.createBranch(pr.targetBranch, targetCommit, false);
+      await repo.checkoutBranch(localTargetBranch);
 
-      // Create local source branch
+      // Get source branch commit and create local branch
+      console.log("Getting source branch commit...");
+      const sourceRef = await repo.getReference(`refs/remotes/origin/${pr.sourceBranch}`);
+      const sourceCommit = await repo.getReferenceCommit(sourceRef);
+      console.log("Source commit:", sourceCommit.id().toString());
+
       console.log("Creating local source branch:", pr.sourceBranch);
-      const sourceCommit = await repo.getReferenceCommit(`refs/remotes/origin/${pr.sourceBranch}`);
-      const sourceBranch = await repo.createBranch(pr.sourceBranch, sourceCommit);
+      const sourceBranch = await repo.createBranch(pr.sourceBranch, sourceCommit, false);
 
       // Try to merge
       try {
