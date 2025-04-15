@@ -23,36 +23,47 @@ function Register() {
 
   const handleRegister = async (e) => {
     e.preventDefault();
-    setError("");
-
-    const result = await register(username, password);
-    
-    if (result.success) {
-      navigate(from, { replace: true });
-    } else {
-      setError(result.message);
+    try {
+      const { data } = await api.post("/register", { username, password, publicKey });
+      setMessage("Registration successful!");
+    } catch (error) {
+      console.error("Error registering user:", error);
+      setMessage(error.response?.data?.message || "Error registering user");
     }
   };
 
   return (
-    <div className="auth-container">
+    <div style={{ padding: "2rem" }}>
       <h2>Register</h2>
-      {error && <p style={{ color: "red" }}>{error}</p>}
-      <form onSubmit={handleRegister} className="auth-form">
-        <input
-          type="text"
-          placeholder="Username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          required
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
+      {message && <p>{message}</p>}
+      <form onSubmit={handleRegister}>
+        <div>
+          <label>Username:</label>
+          <input
+            type="text"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            required
+          />
+        </div>
+        <div>
+          <label>Password:</label>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+        </div>
+        <div>
+          <label>SSH Public Key:</label>
+          <textarea
+            value={publicKey}
+            onChange={(e) => setPublicKey(e.target.value)}
+            rows="4"
+            required
+          />
+        </div>
         <button type="submit">Register</button>
       </form>
     </div>
