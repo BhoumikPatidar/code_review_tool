@@ -298,12 +298,10 @@ const mergePR = async (req, res) => {
 
       // Try to merge
       try {
+        // Perform merge
         console.log("Attempting merge...");
-        await NodeGit.Merge.merge(repo, sourceBranch, null, {
-          fileFavor: NodeGit.Merge.FILE_FAVOR.NORMAL
-        });
-
-        // Check for conflicts
+        const mergeResult = await NodeGit.Merge.commits(repo, targetCommit, sourceCommit, null);
+        
         const index = await repo.index();
         if (index.hasConflicts()) {
           console.log("Merge conflicts detected");
@@ -314,7 +312,7 @@ const mergePR = async (req, res) => {
         // Create merge commit
         console.log("Creating merge commit...");
         const sig = repo.defaultSignature();
-        await repo.createCommitOnHead(
+        const commitOid = await repo.createCommitOnHead(
           [], 
           sig,
           sig,
@@ -337,6 +335,7 @@ const mergePR = async (req, res) => {
 
         res.json({ status: 'merged', message: "PR merged successfully" });
       } catch (mergeError) {
+        console.error("Merge error:", mergeError);
         if (mergeError.status === 409) {
           res.status(409).json({ 
             error: "Merge conflicts detected", 
