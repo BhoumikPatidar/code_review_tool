@@ -22,17 +22,20 @@ exports.updateSshKey = async (req, res) => {
     const keyHash = crypto.createHash("sha256").update(publicKey).digest("hex");
 
     // Load or initialize the mapping file
-    let sshToUser = {};
-    if (fs.existsSync(SSH_TO_USER_FILE)) {
-      const fileContent = fs.readFileSync(SSH_TO_USER_FILE, "utf8");
-      sshToUser = fileContent ? JSON.parse(fileContent) : {};
+    let userToSsh = {};
+    if (fs.existsSync(USER_TO_SSH_FILE)) {
+      const fileContent = fs.readFileSync(USER_TO_SSH_FILE, "utf8");
+      userToSsh = fileContent ? JSON.parse(fileContent) : {};
     }
 
     // Update the mapping
-    sshToUser[keyHash] = req.user.username;
+    userToSsh[req.user.username] = keyHash;
 
     // Save the updated mapping
-    fs.writeFileSync(SSH_TO_USER_FILE, JSON.stringify(sshToUser, null, 2));
+    fs.writeFileSync(USER_TO_SSH_FILE, JSON.stringify(userToSsh, null, 2));
+
+    // Debug log
+    console.log(`Updated user_to_ssh.json: ${JSON.stringify(userToSsh, null, 2)}`);
 
     res.json({ message: "SSH key updated successfully" });
   } catch (error) {
