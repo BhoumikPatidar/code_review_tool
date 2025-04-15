@@ -252,18 +252,100 @@ async function getCommits(req, res) {
 //   }
 // }
 
+// async function getRepoTree(req, res) {
+//   const repoName = req.params.repoName;
+//   const queryPath = req.query.path || '';
+//   const branch = req.query.branch || 'master';
+
+//   try {
+//     const actualRepoName = repoName.endsWith('.git') ? repoName : `${repoName}.git`;
+//     const repoPath = path.join(REPO_BASE_PATH, actualRepoName);
+//     const repo = await NodeGit.Repository.open(repoPath);
+
+//     // Get specified branch commit
+//     const commit = await repo.getBranchCommit(branch);
+//     const tree = await commit.getTree();
+
+//     let targetTree = tree;
+//     if (queryPath) {
+//       try {
+//         const entry = await tree.getEntry(queryPath);
+//         if (entry.isTree()) {
+//           targetTree = await entry.getTree();
+//         } else {
+//           return res.status(400).json({ error: "The provided path points to a file, not a directory" });
+//         }
+//       } catch (err) {
+//         console.error("Error getting subtree:", err);
+//         return res.status(400).json({ error: "Invalid path" });
+//       }
+//     }
+
+//     const entries = [];
+//     targetTree.entries().forEach(entry => {
+//       const fileType = entry.isBlob() ? 'file' : 'directory';
+//       entries.push({
+//         name: entry.name(),
+//         type: fileType,
+//         sha: entry.sha(),
+//       });
+//     });
+
+//     if (entries.length === 0) {
+//       return res.json({ path: queryPath, entries: [], message: "The repository is empty or contains no supported files." });
+//     }
+
+//     res.json({ path: queryPath, entries });
+//   } catch (err) {
+//     console.error("Error getting repository tree:", err);
+//     res.status(500).json({ error: "Error getting repository tree" });
+//   }
+// }
 async function getRepoTree(req, res) {
   const repoName = req.params.repoName;
   const queryPath = req.query.path || '';
-  const branch = req.query.branch || 'master';
+  const requestedBranch = req.query.branch || 'main';
 
   try {
     const actualRepoName = repoName.endsWith('.git') ? repoName : `${repoName}.git`;
     const repoPath = path.join(REPO_BASE_PATH, actualRepoName);
+    console.log(`Opening repository at: ${repoPath}`);
+    
     const repo = await NodeGit.Repository.open(repoPath);
 
-    // Get specified branch commit
-    const commit = await repo.getBranchCommit(branch);
+    // Try to get specified branch commit with fallback logic
+    let commit;
+    try {
+      // Try requested branch first
+      commit = await repo.getBranchCommit(requestedBranch);
+    } catch (branchErr) {
+      console.log(`Branch '${requestedBranch}' not found, trying alternatives...`);
+      try {
+        // Try 'master' branch
+        commit = await repo.getBranchCommit('master');
+      } catch (masterErr) {
+        try {
+          // Try 'main' branch
+          commit = await repo.getBranchCommit('main');
+        } catch (mainErr) {
+          // If no standard branches exist, try to get HEAD
+          try {
+            const head = await repo.head();
+            commit = await repo.getCommit(head.target());
+          } catch (headErr) {
+            // If repository is completely empty, return empty result
+            console.log("Repository appears to be empty");
+            return res.json({
+              path: queryPath,
+              entries: [],
+              message: "Repository is empty. Initialize with a commit to view contents."
+            });
+          }
+        }
+      }
+    }
+
+    console.log("Successfully found a valid commit");
     const tree = await commit.getTree();
 
     let targetTree = tree;
@@ -292,13 +374,20 @@ async function getRepoTree(req, res) {
     });
 
     if (entries.length === 0) {
-      return res.json({ path: queryPath, entries: [], message: "The repository is empty or contains no supported files." });
+      return res.json({
+        path: queryPath,
+        entries: [],
+        message: "This directory is empty."
+      });
     }
 
     res.json({ path: queryPath, entries });
   } catch (err) {
     console.error("Error getting repository tree:", err);
-    res.status(500).json({ error: "Error getting repository tree" });
+    res.status(500).json({
+      error: "Error getting repository tree",
+      details: err.message
+    });
   }
 }
 
