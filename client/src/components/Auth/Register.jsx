@@ -6,15 +6,14 @@ import "./Auth.css";
 function Register() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [publicKey, setPublicKey] = useState(""); // New state for SSH key
   const [error, setError] = useState("");
   const navigate = useNavigate();
   const location = useLocation();
   const { register, isAuthenticated } = useAuth();
 
-  // Get the page user was trying to access
+  // Redirect if already authenticated
   const from = location.state?.from || "/repositories";
-
-  // If already authenticated, redirect
   useEffect(() => {
     if (isAuthenticated) {
       navigate(from, { replace: true });
@@ -23,47 +22,46 @@ function Register() {
 
   const handleRegister = async (e) => {
     e.preventDefault();
+    setError("");
     try {
-      const { data } = await api.post("/register", { username, password, publicKey });
-      setMessage("Registration successful!");
-    } catch (error) {
-      console.error("Error registering user:", error);
-      setMessage(error.response?.data?.message || "Error registering user");
+      const result = await register(username, password, publicKey);
+      if (result.success) {
+        navigate(from, { replace: true });
+      } else {
+        setError(result.message);
+      }
+    } catch (err) {
+      console.error("Error registering user:", err);
+      setError("Failed to register user");
     }
   };
 
   return (
-    <div style={{ padding: "2rem" }}>
+    <div className="auth-container">
       <h2>Register</h2>
-      {message && <p>{message}</p>}
-      <form onSubmit={handleRegister}>
-        <div>
-          <label>Username:</label>
-          <input
-            type="text"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            required
-          />
-        </div>
-        <div>
-          <label>Password:</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </div>
-        <div>
-          <label>SSH Public Key:</label>
-          <textarea
-            value={publicKey}
-            onChange={(e) => setPublicKey(e.target.value)}
-            rows="4"
-            required
-          />
-        </div>
+      {error && <p style={{ color: "red" }}>{error}</p>}
+      <form onSubmit={handleRegister} className="auth-form">
+        <input
+          type="text"
+          placeholder="Username"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          required
+        />
+        <input
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+        />
+        <textarea
+          placeholder="Enter your SSH public key"
+          value={publicKey}
+          onChange={(e) => setPublicKey(e.target.value)}
+          required
+          style={{ height: "100px" }}
+        />
         <button type="submit">Register</button>
       </form>
     </div>

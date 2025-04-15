@@ -84,25 +84,19 @@ export const AuthProvider = ({ children }) => {
   };
 
   // Register function
-  const register = async (username, password) => {
+  const register = async (username, password, publicKey) => {
     try {
       setLoading(true);
-      const { data } = await api.post("/auth/register", { username, password });
-      
+      const { data } = await api.post("/auth/register", { username, password, publicKey });
       setToken(data.token);
       setCurrentUser(data.user);
-      
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
-      
       setLoading(false);
       return { success: true };
     } catch (error) {
       setLoading(false);
-      return { 
-        success: false, 
-        message: error.response?.data?.message || "Registration failed" 
-      };
+      return { success: false, message: error.response?.data?.message || "Registration failed" };
     }
   };
 
@@ -142,7 +136,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={value}>
+    <AuthContext.Provider value={{ currentUser, token, register }}>
       {!loading ? children : <LoadingSpinner />}
     </AuthContext.Provider>
   );

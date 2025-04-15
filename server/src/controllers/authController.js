@@ -1,7 +1,11 @@
-const { User } = require('../models');
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
-require('dotenv').config();
+const fs = require("fs");
+const path = require("path");
+const crypto = require("crypto");
+const jwt = require("jsonwebtoken");
+const bcrypt = require("bcryptjs");
+require("dotenv").config();
+
+const USER_TO_SSH_FILE = "/var/lib/git/user_to_ssh.json";
 
 exports.register = async (req, res) => {
   try {
@@ -16,17 +20,17 @@ exports.register = async (req, res) => {
     }
 
     // Hash the SSH key
-    const keyHash = require("crypto").createHash("sha256").update(publicKey).digest("hex");
+    const keyHash = crypto.createHash("sha256").update(publicKey).digest("hex");
 
-    // Load or initialize the SSH-to-user mapping
-    let sshToUser = {};
-    if (fs.existsSync(SSH_TO_USER_FILE)) {
-      const fileContent = fs.readFileSync(SSH_TO_USER_FILE, "utf8");
-      sshToUser = fileContent ? JSON.parse(fileContent) : {};
+    // Load or initialize the user-to-SSH mapping
+    let userToSsh = {};
+    if (fs.existsSync(USER_TO_SSH_FILE)) {
+      const fileContent = fs.readFileSync(USER_TO_SSH_FILE, "utf8");
+      userToSsh = fileContent ? JSON.parse(fileContent) : {};
     }
 
     // Check if the username already exists
-    if (sshToUser[username]) {
+    if (userToSsh[username]) {
       return res.status(400).json({ message: "User already exists" });
     }
 
@@ -34,10 +38,10 @@ exports.register = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Add the user to the mapping
-    sshToUser[username] = { keyHash, password: hashedPassword };
+    userToSsh[username] = { keyHash, password: hashedPassword };
 
     // Save the updated mapping
-    fs.writeFileSync(SSH_TO_USER_FILE, JSON.stringify(sshToUser, null, 2));
+    fs.writeFileSync(USER_TO_SSH_FILE, JSON.stringify(userToSsh, null, 2));
 
     // Generate a token
     const token = jwt.sign({ username }, process.env.JWT_SECRET, { expiresIn: "1d" });
@@ -48,7 +52,6 @@ exports.register = async (req, res) => {
     res.status(500).json({ message: "Failed to register user" });
   }
 };
-
 exports.login = async (req, res) => {
   try {
     const { username, password } = req.body;
