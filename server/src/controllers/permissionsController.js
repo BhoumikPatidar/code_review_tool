@@ -31,6 +31,7 @@ const SSH_TO_USER_FILE = "/var/lib/git/ssh_to_user.json";
 exports.getUserPermissions = async (req, res) => {
   try {
     console.log("\n=== GET USER PERMISSIONS START ===");
+    console.log("Request user:", req.user);
     
     // Get username from authenticated user
     if (!req.user?.username) {
@@ -40,13 +41,14 @@ exports.getUserPermissions = async (req, res) => {
 
     // Get SSH key hash from ssh_to_user.json
     const userToSsh = JSON.parse(fs.readFileSync(SSH_TO_USER_FILE, "utf8"));
-    const keyHash = userToSsh[req.user.username];
+    console.log("ssh_to_user.json content:", userToSsh);
+    console.log("Looking for username:", req.user.username);
     
-    console.log("Username:", req.user.username);
+    const keyHash = userToSsh[req.user.username];
     console.log("Found keyHash:", keyHash);
 
     if (!keyHash) {
-      console.error("No SSH key hash found for user");
+      console.error("No SSH key hash found for user:", req.user.username);
       return res.status(400).json({ error: "No SSH key found for user" });
     }
 
@@ -54,9 +56,10 @@ exports.getUserPermissions = async (req, res) => {
     const permissions = JSON.parse(fs.readFileSync(PERMISSIONS_FILE, "utf8"));
     const userPermissions = permissions[keyHash] || {};
 
-    console.log("User permissions:", userPermissions);
+    console.log("All permissions:", permissions);
+    console.log("User permissions for keyHash:", userPermissions);
 
-    // Transform permissions into the expected format
+    // Transform permissions into expected format
     const repositories = Object.entries(userPermissions).map(([repo, data]) => ({
       name: repo,
       permissions: data.permissions || []
@@ -68,6 +71,7 @@ exports.getUserPermissions = async (req, res) => {
     return res.json({ repositories });
   } catch (error) {
     console.error("Error in getUserPermissions:", error);
+    console.error("Stack trace:", error.stack);
     return res.status(500).json({ error: "Failed to get user permissions" });
   }
 };
@@ -165,29 +169,6 @@ function hashSshKey(sshKey) {
   return crypto.createHash("sha256").update(sshKey).digest("hex");
 }
 
-// Fetch permissions for a specific SSH key
-exports.getUserPermissions = (req, res) => {
-  const sshKey = req.query.sshKey;
-
-  if (!sshKey) {
-    return res.status(400).json({ error: "SSH key is required" });
-  }
-
-  try {
-    const sshKeyHash = hashSshKey(sshKey);
-    const permissions = JSON.parse(fs.readFileSync(PERMISSIONS_FILE, "utf8"));
-    const userPermissions = permissions[sshKeyHash] || {};
-    const repositories = Object.keys(userPermissions).map((repo) => ({
-      name: repo,
-      permissions: userPermissions[repo],
-    }));
-
-    res.json({ repositories });
-  } catch (err) {
-    console.error("Error reading permissions file:", err);
-    res.status(500).json({ error: "Error reading permissions file" });
-  }
-};
 
 // exports.updatePermissions = (req, res) => {
 //   const { sshKey, repo, permissions, branch } = req.body;

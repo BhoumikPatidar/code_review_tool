@@ -40,9 +40,10 @@ function PRDashboard() {
         console.error("No auth token found");
         return false;
       }
-  
+      console.log(1);
       // Get user permissions
       const response = await api.get('/permissions/user');
+      console.log(2);
       console.log("Permissions response:", response.data);
   
       const { repositories } = response.data;
