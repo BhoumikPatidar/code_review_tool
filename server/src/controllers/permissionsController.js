@@ -144,22 +144,56 @@ exports.getUserPermissions = (req, res) => {
   }
 };
 
-exports.updatePermissions = (req, res) => {
-  const { sshKey, repo, permissions, branch } = req.body;
+// exports.updatePermissions = (req, res) => {
+//   const { sshKey, repo, permissions, branch } = req.body;
 
-  if (!sshKey || !repo || !permissions || !Array.isArray(permissions)) {
-    return res.status(400).json({ error: "SSH key, repo, and permissions array are required" });
-  }
+//   if (!sshKey || !repo || !permissions || !Array.isArray(permissions)) {
+//     return res.status(400).json({ error: "SSH key, repo, and permissions array are required" });
+//   }
 
-  // Validate permissions array
-  const validActions = ["R", "W", "RW+", "branch"];
-  const invalidPermissions = permissions.filter((action) => !validActions.includes(action));
-  if (invalidPermissions.length > 0) {
-    return res.status(400).json({ error: `Invalid permissions: ${invalidPermissions.join(", ")}` });
-  }
+//   // Validate permissions array
+//   const validActions = ["R", "W", "RW+", "branch"];
+//   const invalidPermissions = permissions.filter((action) => !validActions.includes(action));
+//   if (invalidPermissions.length > 0) {
+//     return res.status(400).json({ error: `Invalid permissions: ${invalidPermissions.join(", ")}` });
+//   }
 
+//   try {
+//     const sshKeyHash = hashSshKey(sshKey);
+//     const permissionsData = fs.existsSync(PERMISSIONS_FILE)
+//       ? JSON.parse(fs.readFileSync(PERMISSIONS_FILE, "utf8"))
+//       : {};
+
+//     if (!permissionsData[sshKeyHash]) {
+//       permissionsData[sshKeyHash] = {};
+//     }
+
+//     permissionsData[sshKeyHash][repo] = { permissions, branch };
+
+//     fs.writeFileSync(PERMISSIONS_FILE, JSON.stringify(permissionsData, null, 2));
+
+//     res.json({ message: "Permissions updated successfully." });
+//   } catch (err) {
+//     console.error("Error updating permissions file:", err);
+//     res.status(500).json({ error: "Error updating permissions file" });
+//   }
+// };
+
+exports.updatePermissions = async (req, res) => {
   try {
+    const { sshKey, repo, permissions, branch } = req.body;
+
+    // Validate inputs
+    if (!sshKey || !repo || !permissions || !Array.isArray(permissions)) {
+      return res.status(400).json({ 
+        error: "SSH key, repo, and permissions array are required" 
+      });
+    }
+
+    // Hash the SSH key
     const sshKeyHash = hashSshKey(sshKey);
+    
+    // Update permissions.json
     const permissionsData = fs.existsSync(PERMISSIONS_FILE)
       ? JSON.parse(fs.readFileSync(PERMISSIONS_FILE, "utf8"))
       : {};
@@ -169,13 +203,19 @@ exports.updatePermissions = (req, res) => {
     }
 
     permissionsData[sshKeyHash][repo] = { permissions, branch };
-
     fs.writeFileSync(PERMISSIONS_FILE, JSON.stringify(permissionsData, null, 2));
 
-    res.json({ message: "Permissions updated successfully." });
+    // Update gitolite configuration
+    try {
+      await updateGitoliteConf(sshKey, repo, permissions, branch);
+      res.json({ message: "Permissions updated successfully" });
+    } catch (error) {
+      console.error("Error updating gitolite config:", error);
+      res.status(500).json({ error: "Failed to update gitolite configuration" });
+    }
   } catch (err) {
-    console.error("Error updating permissions file:", err);
-    res.status(500).json({ error: "Error updating permissions file" });
+    console.error("Error updating permissions:", err);
+    res.status(500).json({ error: "Error updating permissions" });
   }
 };
 
