@@ -369,7 +369,7 @@ const runStaticAnalysis = async (req, res) => {
     // Clone the repository using the target branch (or main branch if targetBranch is not specified)
     const cloneOptions = {
       bare: 0,
-      checkoutBranch: pr.targetBranch || "main",
+      checkoutBranch: pr.targetBranch || "master",
       fetchOpts: {
         callbacks: {
           certificateCheck: () => 0,

@@ -5,24 +5,55 @@ const crypto = require("crypto");
 const PERMISSIONS_FILE = "/var/lib/git/permissions.json";
 
 // Fetch permissions for a specific SSH key
-exports.getUserPermissions = (req, res) => {
-  const sshKey = req.query.sshKey;
+// exports.getUserPermissions = (req, res) => {
+//   const sshKey = req.query.sshKey;
 
-  if (!sshKey) {
-    return res.status(400).json({ error: "SSH key is required" });
-  }
+//   if (!sshKey) {
+//     return res.status(400).json({ error: "SSH key is required" });
+//   }
+
+//   try {
+//     const permissions = JSON.parse(fs.readFileSync(PERMISSIONS_FILE, "utf8"));
+//     const userPermissions = permissions[sshKey] || {};
+//     const repositories = Object.keys(userPermissions).map(repo => ({
+//       name: repo,
+//       permissions: userPermissions[repo]
+//     }));
+
+//     res.json({ repositories });
+//   } catch (err) {
+//     console.error("Error reading permissions file:", err);
+//     res.status(500).json({ error: "Error reading permissions file" });
+//   }
+// };
+
+exports.getUserPermissions = (req, res) => {
+  console.log("Getting permissions for user:", req.user);
 
   try {
-    const permissions = JSON.parse(fs.readFileSync(PERMISSIONS_FILE, "utf8"));
-    const userPermissions = permissions[sshKey] || {};
+    // Get permissions using keyHash from authenticated user
+    const keyHash = req.user.keyHash;
+    if (!keyHash) {
+      return res.status(400).json({ error: "No key hash found for user" });
+    }
+
+    const permissions = fs.existsSync(PERMISSIONS_FILE)
+      ? JSON.parse(fs.readFileSync(PERMISSIONS_FILE, "utf8"))
+      : {};
+
+    console.log("Full permissions data:", permissions);
+    console.log("Looking for permissions with keyHash:", keyHash);
+    
+    const userPermissions = permissions[keyHash] || {};
     const repositories = Object.keys(userPermissions).map(repo => ({
       name: repo,
-      permissions: userPermissions[repo]
+      permissions: userPermissions[repo].permissions
     }));
 
+    console.log("Found repositories with permissions:", repositories);
     res.json({ repositories });
   } catch (err) {
-    console.error("Error reading permissions file:", err);
+    console.error("Error reading permissions:", err);
     res.status(500).json({ error: "Error reading permissions file" });
   }
 };

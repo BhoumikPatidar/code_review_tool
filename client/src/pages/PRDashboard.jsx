@@ -33,50 +33,52 @@ function PRDashboard() {
 
   const checkMergePermissions = async (repository) => {
     try {
-      const response = await api.get('/permissions/user');
+      console.log("Checking merge permissions for repo:", repository);
+      const response = await api.get('/api/permissions/user');
       const userPermissions = response.data;
       
+      console.log("User permissions:", userPermissions);
+  
       // Check if user has RW+ permissions for this repo
-      console.log(userPermissions);
-      return userPermissions?.repositories?.some(repo => 
+      const hasPermission = userPermissions?.repositories?.some(repo => 
         repo.name === repository && 
         repo.permissions.includes('RW+')
       );
+  
+      console.log(`Has RW+ permission for ${repository}:`, hasPermission);
+      return hasPermission;
     } catch (error) {
       console.error('Error checking permissions:', error);
       return false;
     }
   };
-
+  
   const handleMerge = async (id) => {
     try {
       setMergeError("");
       
       // Get PR details first
-      const { data: pr } = await api.get(`/prs/${id}`);
-      console.log("Attempting to merge PR:", pr);
+      const { data: pr } = await api.get(`/api/prs/${id}`);
+      console.log("PR details:", pr);
       
       // Check permissions
       const hasPermission = await checkMergePermissions(pr.repository);
-      console.log(hasPermission);
       if (!hasPermission) {
-        setMergeError("You don't have the required permissions to merge this PR");
+        setMergeError("You don't have the required permissions (RW+) to merge this PR");
         return;
       }
-
+  
       // Attempt merge
-      const response = await api.post(`/prs/${id}/merge`);
+      const response = await api.post(`/api/prs/${id}/merge`);
       console.log("Merge response:", response.data);
-
+  
       if (response.data.status === 'merged') {
-          setMessage("PR merged successfully!");
-          fetchPRs(); // Refresh the list
-        }
-      } 
-      catch (error) {
+        setMessage("PR merged successfully!");
+        fetchPRs(); // Refresh the list
+      }
+    } catch (error) {
       console.error("Error merging PR:", error);
       if (error.response?.status === 409) {
-        // Handle merge conflicts
         navigate(`/prs/${id}/conflicts`, { 
           state: { conflicts: error.response.data.conflicts }
         });
