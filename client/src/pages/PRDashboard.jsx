@@ -33,28 +33,30 @@ function PRDashboard() {
 
   const checkMergePermissions = async (repository) => {
     try {
-      console.log("Checking merge permissions for repo:", repository);
-      const token = localStorage.getItem('token');
+      console.log("Checking merge permissions for repository:", repository);
       
+      const token = localStorage.getItem('token');
       if (!token) {
         console.error("No auth token found");
         return false;
       }
   
+      // Get user permissions from permissions.json
       const response = await api.get('/permissions/user');
-      console.log("User permissions response:", response.data);
-      
-      const userPermissions = response.data;
-      const hasPermission = userPermissions?.repositories?.some(repo => 
-        repo.name === repository && 
-        Array.isArray(repo.permissions) && 
-        repo.permissions.includes('RW+')
-      );
+      console.log("Permissions response:", response.data);
   
-      console.log(`Has RW+ permission for ${repository}:`, hasPermission);
-      return hasPermission;
+      const { repositories } = response.data;
+      
+      // Check if user has RW+ permissions for this repository
+      const repoPermissions = repositories.find(repo => repo.name === repository);
+      const hasPermission = repoPermissions?.permissions.includes('RW+');
+  
+      console.log(`Repository permissions for ${repository}:`, repoPermissions);
+      console.log(`Has RW+ permission: ${hasPermission}`);
+  
+      return hasPermission || false;
     } catch (error) {
-      console.error('Error checking permissions:', error.response?.data || error);
+      console.error('Error checking permissions:', error);
       return false;
     }
   };

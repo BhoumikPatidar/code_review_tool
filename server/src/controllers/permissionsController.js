@@ -29,46 +29,34 @@ const PERMISSIONS_FILE = "/var/lib/git/permissions.json";
 
 exports.getUserPermissions = async (req, res) => {
   try {
-    console.log("=== GET USER PERMISSIONS START ===");
-    console.log("Request user:", req.user);
-
-    // Get the authenticated user's keyHash
-    if (!req.user || !req.user.keyHash) {
-      console.error("No authenticated user or keyHash found");
-      return res.status(400).json({ 
-        error: "Authentication required",
-        details: "No user keyHash found" 
-      });
+    console.log("Getting user permissions");
+    
+    // Read permissions.json
+    const permissions = JSON.parse(fs.readFileSync(PERMISSIONS_FILE, 'utf8'));
+    
+    // Get keyHash from authenticated user
+    const keyHash = req.user?.keyHash;
+    if (!keyHash) {
+      console.error("No keyHash found in user object");
+      return res.status(400).json({ error: "User keyHash not found" });
     }
 
-    const keyHash = req.user.keyHash;
-    console.log("Using keyHash:", keyHash);
-
-    // Read permissions file
-    const permissions = fs.existsSync(PERMISSIONS_FILE)
-      ? JSON.parse(fs.readFileSync(PERMISSIONS_FILE, "utf8"))
-      : {};
-    
-    console.log("All permissions:", permissions);
-    console.log("Looking for user permissions with keyHash:", keyHash);
+    console.log("Checking permissions for keyHash:", keyHash);
+    console.log("Available permissions:", permissions);
 
     // Get user's permissions
     const userPermissions = permissions[keyHash] || {};
-    const repositories = Object.keys(userPermissions).map(repo => ({
-      name: repo,
-      permissions: userPermissions[repo].permissions || []
-    }));
 
-    console.log("Found repositories with permissions:", repositories);
-    console.log("=== GET USER PERMISSIONS END ===");
-
-    return res.json({ repositories });
-  } catch (err) {
-    console.error("Error in getUserPermissions:", err);
-    return res.status(500).json({ 
-      error: "Error reading permissions",
-      details: err.message 
+    return res.json({
+      keyHash,
+      repositories: Object.entries(userPermissions).map(([repo, data]) => ({
+        name: repo,
+        permissions: data.permissions || []
+      }))
     });
+  } catch (error) {
+    console.error("Error reading permissions:", error);
+    return res.status(500).json({ error: "Failed to read permissions" });
   }
 };
 
