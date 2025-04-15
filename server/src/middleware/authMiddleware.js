@@ -3,7 +3,7 @@ const path = require("path");
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
 
-const SSH_TO_USER_FILE = "/var/lib/git/ssh_to_user.json";
+const USER_TO_SSH_FILE = "/var/lib/git/ssh_to_user.json";
 
 module.exports = async (req, res, next) => {
   const token = req.header("Authorization")?.split(" ")[1];
@@ -18,19 +18,20 @@ module.exports = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     console.log("Decoded token:", decoded);
 
-    // Load the SSH-to-user mapping
-    const sshToUser = JSON.parse(fs.readFileSync(SSH_TO_USER_FILE, "utf8"));
-    const username = sshToUser[decoded.id]; // Use the decoded ID to find the username
+    // Load the user-to-SSH mapping
+    const userToSsh = JSON.parse(fs.readFileSync(USER_TO_SSH_FILE, "utf8"));
+    const keyHash = userToSsh[decoded.id]; // Use the decoded ID to find the SSH key hash
 
-    if (!username) {
-      console.log("User not found in ssh_to_user.json");
+    if (!keyHash) {
+      console.log(`User not found in user_to_ssh.json for ID: ${decoded.id}`);
       return res.status(401).json({ message: "User not found, authorization denied" });
     }
 
     // Attach user to the request object
     req.user = {
       id: decoded.id,
-      username: username,
+      username: decoded.username, // Ensure username is included in the token
+      keyHash: keyHash, // Attach the SSH key hash
     };
 
     console.log("Auth middleware called. User attached to req:", req.user);

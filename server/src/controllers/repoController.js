@@ -51,30 +51,21 @@ const SSH_TO_USER_FILE = "/var/lib/git/ssh_to_user.json";
 async function listRepos(req, res) {
   try {
     // Check if req.user exists
-    if (!req.user || !req.user.username) {
-      console.error("Error: req.user or username is missing");
+    if (!req.user || !req.user.keyHash) {
+      console.error("Error: req.user or keyHash is missing");
       return res.status(400).json({ error: "User is not authenticated" });
     }
 
-    // Load the user-to-SSH mapping
-    const userToSsh = JSON.parse(fs.readFileSync(USER_TO_SSH_FILE, "utf8"));
-    const keyHash = userToSsh[req.user.username];
-
-    if (!keyHash) {
-      console.error(`Error: No SSH key hash found for user ${req.user.username}`);
-      return res.status(403).json({ error: "SSH key not registered" });
-    }
-
     // Debug log
-    console.log(`User ${req.user.username} has SSH key hash: ${keyHash}`);
+    console.log(`User ${req.user.username} has SSH key hash: ${req.user.keyHash}`);
 
     // Load the permissions file
     const permissions = JSON.parse(fs.readFileSync(PERMISSIONS_FILE, "utf8"));
 
     // Find repositories the user has access to
     const accessibleRepos = [];
-    if (permissions[keyHash]) {
-      for (const repoName of Object.keys(permissions[keyHash])) {
+    if (permissions[req.user.keyHash]) {
+      for (const repoName of Object.keys(permissions[req.user.keyHash])) {
         accessibleRepos.push({ name: repoName });
       }
     }
