@@ -185,11 +185,14 @@ function Permissions() {
         </thead>
         <tbody>
           {Object.entries(permissions || {}).map(([key, repos]) =>
-            Object.entries(repos || {}).map(([repoName, { permissions, branch }]) => (
+            Object.entries(repos || {}).map(([repoName, repoData]) => (
               <tr key={`${key}-${repoName}`}>
                 <td>{key}</td>
                 <td>{repoName}</td>
-                <td>{permissions.join(", ")} {branch ? `(Branch: ${branch})` : ""}</td>
+                <td>
+                  {(repoData.permissions || []).join(", ")}{" "}
+                  {repoData.branch ? `(Branch: ${repoData.branch})` : ""}
+                </td>
               </tr>
             ))
           )}
