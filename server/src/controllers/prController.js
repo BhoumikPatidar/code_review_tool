@@ -300,7 +300,9 @@ const mergePR = async (req, res) => {
       try {
         // Perform merge
         console.log("Attempting merge...");
-        const mergeResult = await NodeGit.Merge.commits(repo, targetCommit, sourceCommit, null);
+        const mergeResult = await NodeGit.Merge.commits(repo, targetCommit, sourceCommit, {
+          fileFavor: NodeGit.Merge.FILE_FAVOR.NORMAL
+        });
         
         const index = await repo.index();
         if (index.hasConflicts()) {
