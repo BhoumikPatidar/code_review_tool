@@ -152,7 +152,7 @@ exports.updatePermissions = (req, res) => {
 };
 
   const { execSync } = require("child_process");
-  const GITOLITE_ADMIN_PATH = "/home/git/gitolite-admin"; // Path to the gitolite-admin repo
+  const GITOLITE_ADMIN_PATH = "/tmp/git/gitolite-admin"; // Path to the gitolite-admin repo
   const GITOLITE_CONF_PATH = `${GITOLITE_ADMIN_PATH}/conf/gitolite.conf`;
   
   // function updateGitoliteConf(permissionsData) {
