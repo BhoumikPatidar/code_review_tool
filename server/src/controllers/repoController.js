@@ -50,12 +50,14 @@ const SSH_TO_USER_FILE = "/var/lib/git/ssh_to_user.json";
 
 async function listRepos(req, res) {
   try {
-    // Get the user's SSH key hash
-    const userSshKey = req.user.publicKey;
-    if (!userSshKey) {
+    // Check if req.user and publicKey exist
+    if (!req.user || !req.user.publicKey) {
+      console.log("Error: req.user or publicKey is missing");
       return res.status(400).json({ error: "User has not submitted an SSH key" });
     }
-    const keyHash = crypto.createHash("sha256").update(userSshKey).digest("hex");
+
+    // Get the user's SSH key hash
+    const keyHash = crypto.createHash("sha256").update(req.user.publicKey).digest("hex");
 
     // Load the SSH-to-user mapping
     const sshToUser = JSON.parse(fs.readFileSync(SSH_TO_USER_FILE, "utf8"));
