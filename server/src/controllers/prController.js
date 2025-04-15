@@ -102,116 +102,6 @@ const approvePR = async (req, res) => {
  * checks out both target and source branches, and then uses mergeBranches to merge them.
  * After the merge, it pushes the updated branch back to the bare repository and cleans up.
  */
-// const mergePR = async (req, res) => {
-//   try {
-//     console.log("mergePR: Starting merge for PR id:", req.params.id);
-//     const pr = await PullRequest.findByPk(req.params.id);
-//     if (!pr) {
-//       console.error("mergePR: PR not found");
-//       return res.status(404).json({ error: "Pull Request not found" });
-//     }
-//     if (pr.status !== "approved") {
-//       console.error("mergePR: PR not approved");
-//       return res.status(400).json({ error: "PR must be approved before merging" });     
-//     }
-
-//     const bareRepoPath = path.join(REPO_BASE_PATH, pr.repository);
-//     console.log("mergePR: Bare repo path:", bareRepoPath);
-
-//     // Create a temporary directory for a working clone
-//     const tempDir = path.join(os.tmpdir(), `repo-merge-temp-${Date.now()}`);
-//     console.log("mergePR: Creating temporary directory:", tempDir);
-
-//     // Clone the bare repository into a working (non-bare) clone
-//     const cloneOptions = {
-//       bare: 0,
-//       checkoutBranch: pr.targetBranch,
-//       fetchOpts: {
-//         callbacks: {
-//           certificateCheck: () => 0
-//         }
-//       }
-//     };
-//     console.log("mergePR: Cloning repository from", bareRepoPath, "to", tempDir);       
-//     const repo = await NodeGit.Clone(bareRepoPath, tempDir, cloneOptions);
-//     console.log("mergePR: Clone completed.");
-
-//     // Ensure we're on the target branch
-//     console.log("mergePR: Checking out target branch:", pr.targetBranch);
-//     await repo.checkoutBranch(pr.targetBranch);
-//     console.log("mergePR: Target branch checked out.");
-
-//     // Fetch latest updates from remote
-//     console.log("mergePR: Fetching all updates from remote...");
-//     await repo.fetchAll({
-//       callbacks: {
-//         certificateCheck: () => 0
-//       }
-//     });
-//     console.log("mergePR: Fetch complete.");
-
-//     // Ensure source branch is available locally
-//     console.log("mergePR: Attempting to checkout source branch:", pr.sourceBranch);     
-//     try {
-//       await repo.checkoutBranch(pr.sourceBranch);
-//       console.log("mergePR: Source branch checked out.");
-//     } catch (err) {
-//       console.warn("mergePR: Source branch not found locally, attempting to create from remote...");
-//       const remoteRef = await repo.getReference(`refs/remotes/origin/${pr.sourceBranch}`);
-//       console.log("mergePR: Remote reference for source branch:", remoteRef.name());    
-//       const remoteCommit = await repo.getCommit(remoteRef.target());
-//       console.log("mergePR: Remote commit for source branch:", remoteCommit.id().toString());
-//       await repo.createBranch(pr.sourceBranch, remoteCommit, false);
-//       await repo.checkoutBranch(pr.sourceBranch);
-//       console.log("mergePR: Source branch created and checked out.");
-//     }
-
-//     // Log source commit for debugging
-//     const sourceCommit = await repo.getBranchCommit(pr.sourceBranch);
-//     console.log("mergePR: Source Commit OID:", sourceCommit.id().toString());
-
-//     // Checkout target branch again before merge
-//     console.log("mergePR: Re-checking out target branch:", pr.targetBranch);
-//     await repo.checkoutBranch(pr.targetBranch);
-//     console.log("mergePR: Target branch re-checked out.");
-
-//     // Perform the merge using mergeBranches (higher-level API)
-//     console.log(`mergePR: Merging branch ${pr.sourceBranch} into ${pr.targetBranch} using mergeBranches...`);
-//     await repo.mergeBranches(pr.targetBranch, pr.sourceBranch, null, NodeGit.Merge.PREFERENCE.NONE, null);
-//     console.log("mergePR: mergeBranches operation completed.");
-
-//     // Push the updated target branch back to the bare repository
-//     const remote = await repo.getRemote("origin");
-//     console.log("mergePR: Pushing merged target branch back to remote...");
-//     await remote.push(
-//       [`refs/heads/${pr.targetBranch}:refs/heads/${pr.targetBranch}`],
-//       {
-//         callbacks: {
-//           certificateCheck: () => 0,
-//         },
-//       }
-//     );
-//     console.log("mergePR: Push operation completed.");
-
-//     // Mark the PR as merged in the database
-//     console.log("mergePR: Updating PR status to merged...");
-//     pr.status = "merged";
-//     await pr.save();
-//     console.log("mergePR: PR status updated to merged.");
-
-//     // Clean up the temporary directory
-//     console.log("mergePR: Cleaning up temporary directory:", tempDir);
-//     await fs.remove(tempDir);
-//     console.log("mergePR: Temporary directory cleaned up.");
-
-//     res.json(pr);
-//   } catch (error) {
-//     console.error("mergePR: Error during merge process:", error);
-//     res.status(500).json({ error: error.message });
-// }
-// };
-
-
 const mergePR = async (req, res) => {
   try {
     console.log("\n=== MERGE PR START ===");
@@ -325,69 +215,91 @@ const mergePR = async (req, res) => {
 
       // Try to merge
       try {
-        // Perform merge
         console.log("Attempting merge...");
       
-        // First try analyze merge result
-        const result = await NodeGit.Merge.analysis(repo, sourceCommit);
+        // First try analyze merge
+        const annotatedCommit = await NodeGit.AnnotatedCommit.fromRef(repo, sourceRef);
+        const result = await NodeGit.Merge.analysis(repo, [annotatedCommit]);
         console.log("Merge analysis result:", result);
-  
-        // Perform merge commits
-        const mergeResult = await NodeGit.Merge.commits(repo, targetCommit, sourceCommit, {
-          fileFavor: NodeGit.Merge.FILE_FAVOR.NORMAL
-        });
-        console.log("Merge result:", mergeResult);
-  
-        // Get and analyze index
-        const index = await repo.index();
-        console.log("Index has conflicts:", index.hasConflicts());
-  
-        if (index.hasConflicts()) {
-          console.log("Merge conflicts detected");
-          const conflicts = await getConflictInfo(repo, pr.sourceBranch, pr.targetBranch);
-          throw { status: 409, conflicts };
-        }
-  
-        // Write index to prepare for commit
-        await index.write();
-        console.log("Index written");
-  
-        // Create tree from index
-        const treeOid = await index.writeTree();
-        console.log("Tree created:", treeOid.toString());
-  
-        // Get parent commits
-        const parents = [targetCommit, sourceCommit];
-        console.log("Parent commits:", parents.map(c => c.id().toString()));
-  
-        // Create merge commit
-        console.log("Creating merge commit...");
-        const sig = repo.defaultSignature();
-        const commitOid = await repo.createCommit(
-          "HEAD",
-          sig,
-          sig,
-          `Merge PR #${pr.id} from ${pr.sourceBranch} into ${pr.targetBranch}`,
-          treeOid,
-          parents
-        );
-        console.log("Merge commit created:", commitOid.toString());
-  
-        // Push changes
-        console.log("Pushing changes...");
-        const remote = await repo.getRemote("origin");
-        await remote.push([`refs/heads/${pr.targetBranch}:refs/heads/${pr.targetBranch}`], {
-          callbacks: {
-            certificateCheck: () => 0
+
+        // Check if merge is possible
+        if (result & NodeGit.Merge.ANALYSIS.NORMAL) {
+          console.log("Normal merge is possible");
+          
+          // Perform merge
+          await NodeGit.Merge.merge(repo, annotatedCommit, null, {
+            fileFavor: NodeGit.Merge.FILE_FAVOR.NORMAL,
+            mergeFlags: NodeGit.Merge.FLAG.NONE,
+            checkoutStrategy: NodeGit.Checkout.STRATEGY.FORCE
+          });
+
+          // Get and analyze index
+          const index = await repo.index();
+          console.log("Index has conflicts:", index.hasConflicts());
+
+          if (index.hasConflicts()) {
+            console.log("Merge conflicts detected");
+            const conflicts = await getConflictInfo(repo, pr.sourceBranch, pr.targetBranch);
+            throw { status: 409, conflicts };
           }
-        });
-  
-        // Update PR status
-        pr.status = "merged";
-        await pr.save();
-        console.log("PR marked as merged");
-  
-        res.json({ status: 'merged', message: "PR merged successfully" });
+
+          // Write index
+          await index.write();
+          console.log("Index written");
+
+          // Create tree
+          const treeOid = await index.writeTree();
+          console.log("Tree created:", treeOid.toString());
+
+          // Create merge commit
+          console.log("Creating merge commit...");
+          const sig = repo.defaultSignature();
+          const commitOid = await repo.createCommit(
+            "HEAD",
+            sig,
+            sig,
+            `Merge PR #${pr.id} from ${pr.sourceBranch} into ${pr.targetBranch}`,
+            treeOid,
+            [targetCommit, sourceCommit]
+          );
+          console.log("Merge commit created:", commitOid.toString());
+
+          // Push changes
+          console.log("Pushing changes...");
+          const remote = await repo.getRemote("origin");
+          await remote.push([`refs/heads/${pr.targetBranch}:refs/heads/${pr.targetBranch}`], {
+            callbacks: {
+              certificateCheck: () => 0
+            }
+          });
+
+          // Update PR status
+          pr.status = "merged";
+          await pr.save();
+          console.log("PR marked as merged");
+
+          res.json({ status: 'merged', message: "PR merged successfully" });
+        } else if (result & NodeGit.Merge.ANALYSIS.FASTFORWARD) {
+          console.log("Fast-forward merge is possible");
+          // Handle fast-forward merge
+          const newOid = sourceCommit.id();
+          await targetRef.setTarget(newOid, "Fast-forward merge");
+          await repo.checkoutBranch(targetRef);
+          
+          // Push changes
+          const remote = await repo.getRemote("origin");
+          await remote.push([`refs/heads/${pr.targetBranch}:refs/heads/${pr.targetBranch}`], {
+            callbacks: {
+              certificateCheck: () => 0
+            }
+          });
+
+          pr.status = "merged";
+          await pr.save();
+          res.json({ status: 'merged', message: "Fast-forward merge successful" });
+        } else {
+          throw new Error("Merge analysis indicates merge is not possible");
+        }
       } catch (mergeError) {
         console.error("Merge error:", mergeError);
         if (mergeError.status === 409) {
