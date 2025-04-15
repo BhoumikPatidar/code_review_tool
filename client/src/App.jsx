@@ -18,6 +18,7 @@ import LoadingSpinner from "./context/LoadingSpinner";
 import { useEffect } from "react";
 import Permissions from "./pages/Permissions";
 import Navbar from "./components/NavBar";
+import Repositories from "./pages/Repositories";
 
 // Component to handle header rendering based on auth
 function AppContent() {
@@ -74,6 +75,14 @@ function AppContent() {
           element={
             <ProtectedRoute>
               <PRDetail />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/repositories" 
+          element={
+            <ProtectedRoute>
+              <Repositories />
             </ProtectedRoute>
           } 
         />

@@ -36,6 +36,9 @@ function Header() {
         <Link to="/repositories" style={{ marginRight: "1rem" }}>
           Repositories
         </Link>
+        <Link to="/repositories" style={{ marginRight: "1rem" }}>
+          Repositories
+        </Link>
         <Link to="/sshkey" style={{ marginRight: "1rem" }}>
           SSH Key
         </Link>

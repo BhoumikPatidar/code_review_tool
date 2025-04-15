@@ -7,46 +7,79 @@ const PullRequest = require("../models/PullRequest");
 
 // Define the base directory where your repositories are located
 const REPO_BASE_PATH = "/home/git/repositories";
+const SSH_TO_USER_FILE = "/var/lib/git/ssh_to_user.json";
 
 /**
  * List all repositories (directories) in REPO_BASE_PATH.
  */
+// async function listRepos(req, res) {
+//   try {
+//     console.log("Checking directory:", REPO_BASE_PATH);
+
+//     // First check if directory exists
+//     if (!fs.existsSync(REPO_BASE_PATH)) {
+//       console.log("Creating base directory");
+//       fs.mkdirSync(REPO_BASE_PATH, { recursive: true });
+//     }
+
+//     // Read directory synchronously
+//     const files = fs.readdirSync(REPO_BASE_PATH);
+//     const repos = [];
+
+//     // Process each file synchronously
+//     for (const file of files) {
+//       const fullPath = path.join(REPO_BASE_PATH, file);
+//       const stats = fs.statSync(fullPath);
+      
+//       if (stats.isDirectory()) {
+//         repos.push({ name: file });
+//       }
+//     }
+
+//     console.log("Found repositories:", repos);
+//     res.json({ repositories: repos });
+
+//   } catch (err) {
+//     console.error("Error in listRepos:", err);
+//     res.status(500).json({ 
+//       error: "Error listing repositories",
+//       details: err.message 
+//     });
+//   }
+// }
+
 async function listRepos(req, res) {
   try {
-    console.log("Checking directory:", REPO_BASE_PATH);
+    // Get the user's SSH key hash
+    const userSshKey = req.user.publicKey;
+    if (!userSshKey) {
+      return res.status(400).json({ error: "User has not submitted an SSH key" });
+    }
+    const keyHash = crypto.createHash("sha256").update(userSshKey).digest("hex");
 
-    // First check if directory exists
-    if (!fs.existsSync(REPO_BASE_PATH)) {
-      console.log("Creating base directory");
-      fs.mkdirSync(REPO_BASE_PATH, { recursive: true });
+    // Load the SSH-to-user mapping
+    const sshToUser = JSON.parse(fs.readFileSync(SSH_TO_USER_FILE, "utf8"));
+    if (!sshToUser[keyHash]) {
+      return res.status(403).json({ error: "SSH key not registered" });
     }
 
-    // Read directory synchronously
-    const files = fs.readdirSync(REPO_BASE_PATH);
-    const repos = [];
+    // Load the permissions file
+    const permissions = JSON.parse(fs.readFileSync(PERMISSIONS_FILE, "utf8"));
 
-    // Process each file synchronously
-    for (const file of files) {
-      const fullPath = path.join(REPO_BASE_PATH, file);
-      const stats = fs.statSync(fullPath);
-      
-      if (stats.isDirectory()) {
-        repos.push({ name: file });
+    // Find repositories the user has access to
+    const accessibleRepos = [];
+    if (permissions[keyHash]) {
+      for (const repoName of Object.keys(permissions[keyHash])) {
+        accessibleRepos.push({ name: repoName });
       }
     }
 
-    console.log("Found repositories:", repos);
-    res.json({ repositories: repos });
-
+    res.json({ repositories: accessibleRepos });
   } catch (err) {
-    console.error("Error in listRepos:", err);
-    res.status(500).json({ 
-      error: "Error listing repositories",
-      details: err.message 
-    });
+    console.error("Error listing repositories:", err);
+    res.status(500).json({ error: "Error listing repositories" });
   }
 }
-
 
 async function createRepo(req, res) {
   try {
