@@ -1,6 +1,5 @@
 const fs = require("fs");
 const path = require("path");
-const path = require("path");
 const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
