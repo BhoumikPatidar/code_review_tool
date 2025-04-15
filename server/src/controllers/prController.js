@@ -287,24 +287,36 @@ const mergePR = async (req, res) => {
         throw new Error(`Source branch '${pr.sourceBranch}' not found`);
       }
 
-      console.log("Getting target branch commit...");
-      const targetRef = await repo.getReference(`refs/remotes/origin/${pr.targetBranch}`);
-      const targetCommit = await repo.getReferenceCommit(targetRef);
-      console.log("Target commit:", targetCommit.id().toString());
+      console.log("Setting up target branch...");
+      let localTargetBranch;
+      try {
+        // Try to get existing branch first
+        localTargetBranch = await repo.getBranch(pr.targetBranch);
+        console.log("Found existing target branch");
+      } catch (e) {
+        // Branch doesn't exist locally, create it
+        console.log("Creating new target branch");
+        localTargetBranch = await repo.createBranch(pr.targetBranch, targetCommit, false);
+      }
 
-      // Checkout target branch
+      // Force checkout of target branch
       console.log("Checking out target branch:", pr.targetBranch);
-      const localTargetBranch = await repo.createBranch(pr.targetBranch, targetCommit, false);
-      await repo.checkoutBranch(localTargetBranch);
+      await repo.checkoutBranch(localTargetBranch, {
+        checkoutStrategy: NodeGit.Checkout.STRATEGY.FORCE
+      });
 
-      // Get source branch commit and create local branch
-      console.log("Getting source branch commit...");
-      const sourceRef = await repo.getReference(`refs/remotes/origin/${pr.sourceBranch}`);
-      const sourceCommit = await repo.getReferenceCommit(sourceRef);
-      console.log("Source commit:", sourceCommit.id().toString());
-
-      console.log("Creating local source branch:", pr.sourceBranch);
-      const sourceBranch = await repo.createBranch(pr.sourceBranch, sourceCommit, false);
+      // Handle source branch setup
+      console.log("Setting up source branch...");
+      let sourceBranch;
+      try {
+        // Try to get existing branch first
+        sourceBranch = await repo.getBranch(pr.sourceBranch);
+        console.log("Found existing source branch");
+      } catch (e) {
+        // Branch doesn't exist locally, create it
+        console.log("Creating new source branch");
+        sourceBranch = await repo.createBranch(pr.sourceBranch, sourceCommit, false);
+      }
 
       // Try to merge
       try {
