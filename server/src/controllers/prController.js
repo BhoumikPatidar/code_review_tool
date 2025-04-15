@@ -9,7 +9,7 @@ const util = require("util");
 
 
 // Base directory where your bare repositories are stored
-const REPO_BASE_PATH = "/var/lib/git";
+const REPO_BASE_PATH = "/home/git/repositories";
 
 // Helper: Wrap exec in a Promise
 function execPromise(command) {
