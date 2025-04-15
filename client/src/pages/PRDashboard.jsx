@@ -34,7 +34,8 @@ function PRDashboard() {
   const checkMergePermissions = async (repository) => {
     try {
       console.log("Checking merge permissions for repo:", repository);
-      const response = await api.get('/api/permissions/user');
+      // Remove '/api' prefix
+      const response = await api.get('/permissions/user');
       const userPermissions = response.data;
       
       console.log("User permissions:", userPermissions);
@@ -57,8 +58,8 @@ function PRDashboard() {
     try {
       setMergeError("");
       
-      // Get PR details first
-      const { data: pr } = await api.get(`/api/prs/${id}`);
+      // Get PR details first - Remove '/api' prefix
+      const { data: pr } = await api.get(`/prs/${id}`);
       console.log("PR details:", pr);
       
       // Check permissions
@@ -68,8 +69,8 @@ function PRDashboard() {
         return;
       }
   
-      // Attempt merge
-      const response = await api.post(`/api/prs/${id}/merge`);
+      // Attempt merge - Remove '/api' prefix
+      const response = await api.post(`/prs/${id}/merge`);
       console.log("Merge response:", response.data);
   
       if (response.data.status === 'merged') {
