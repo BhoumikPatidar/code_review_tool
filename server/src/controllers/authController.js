@@ -1,11 +1,13 @@
 const fs = require("fs");
 const path = require("path");
+const fs = require("fs");
+const path = require("path");
 const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 require("dotenv").config();
 
-const USER_TO_SSH_FILE = "/var/lib/git/user_to_ssh.json";
+const SSH_TO_USER_FILE = "/var/lib/git/ssh_to_user.json";
 
 exports.register = async (req, res) => {
   try {
@@ -22,15 +24,18 @@ exports.register = async (req, res) => {
     // Hash the SSH key
     const keyHash = crypto.createHash("sha256").update(publicKey).digest("hex");
 
-    // Load or initialize the user-to-SSH mapping
-    let userToSsh = {};
-    if (fs.existsSync(USER_TO_SSH_FILE)) {
-      const fileContent = fs.readFileSync(USER_TO_SSH_FILE, "utf8");
-      userToSsh = fileContent ? JSON.parse(fileContent) : {};
+    // Load or initialize the SSH-to-user mapping
+    let sshToUser = {};
+    if (fs.existsSync(SSH_TO_USER_FILE)) {
+      console.log("Reading ssh_to_user.json...");
+      const fileContent = fs.readFileSync(SSH_TO_USER_FILE, "utf8");
+      sshToUser = fileContent ? JSON.parse(fileContent) : {};
+    } else {
+      console.log("ssh_to_user.json does not exist. Creating a new file...");
     }
 
     // Check if the username already exists
-    if (userToSsh[username]) {
+    if (sshToUser[username]) {
       return res.status(400).json({ message: "User already exists" });
     }
 
@@ -38,10 +43,12 @@ exports.register = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Add the user to the mapping
-    userToSsh[username] = { keyHash, password: hashedPassword };
+    sshToUser[username] = { keyHash, password: hashedPassword };
 
     // Save the updated mapping
-    fs.writeFileSync(USER_TO_SSH_FILE, JSON.stringify(userToSsh, null, 2));
+    console.log("Updating ssh_to_user.json...");
+    fs.writeFileSync(SSH_TO_USER_FILE, JSON.stringify(sshToUser, null, 2));
+    console.log("ssh_to_user.json updated successfully.");
 
     // Generate a token
     const token = jwt.sign({ username }, process.env.JWT_SECRET, { expiresIn: "1d" });

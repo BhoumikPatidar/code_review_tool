@@ -136,7 +136,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ currentUser, token, register }}>
+    <AuthContext.Provider value={value}>
       {!loading ? children : <LoadingSpinner />}
     </AuthContext.Provider>
   );
