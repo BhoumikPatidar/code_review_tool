@@ -230,34 +230,96 @@ const mergePR = async (req, res) => {
     }
 
     // Check user permissions
-    const userPermissions = JSON.parse(fs.readFileSync(PERMISSIONS_FILE, "utf8"));
+    const permissionsFile = "/var/lib/git/permissions.json"; // Update this path
+    const userPermissions = JSON.parse(fs.readFileSync(permissionsFile, "utf8"));
     const userKeyHash = req.user.keyHash;
 
     if (!userPermissions[userKeyHash]?.[pr.repository]?.permissions?.includes("RW+")) {
       return res.status(403).json({ error: "You don't have permission to merge this PR" });
     }
 
-    // ... rest of the existing merge logic ...
+    const bareRepoPath = path.join(REPO_BASE_PATH, `${pr.repository}.git`);
+    console.log("mergePR: Bare repo path:", bareRepoPath);
 
-    // Add better conflict detection
+    // Create a temporary directory for the merge operation
+    const tempDir = path.join(os.tmpdir(), `pr-merge-${Date.now()}`);
+    console.log("mergePR: Creating temp directory:", tempDir);
+
     try {
-      // ... existing merge code ...
-    } catch (error) {
-      if (error.message.includes("merge conflict")) {
-        // Get conflict information
-        const conflicts = await getConflictInfo(repo, pr.sourceBranch, pr.targetBranch);
-        return res.status(409).json({ 
-          error: "Merge conflicts detected", 
-          conflicts 
-        });
-      }
-      throw error;
-    }
+      // Clone the repository
+      const repo = await NodeGit.Clone(bareRepoPath, tempDir, {
+        bare: 0,
+        checkoutBranch: pr.targetBranch,
+        fetchOpts: {
+          callbacks: {
+            certificateCheck: () => 0
+          }
+        }
+      });
 
-    res.json(pr);
+      // Fetch all branches
+      await repo.fetchAll({
+        callbacks: {
+          certificateCheck: () => 0
+        }
+      });
+
+      // Get the two branches
+      const targetBranch = await repo.getBranch(pr.targetBranch);
+      const sourceBranch = await repo.getBranch(pr.sourceBranch);
+
+      // Try to merge
+      try {
+        await NodeGit.Merge.merge(repo, sourceBranch, null, {
+          fileFavor: NodeGit.Merge.FILE_FAVOR.NORMAL
+        });
+
+        // Check for conflicts
+        const index = await repo.index();
+        if (index.hasConflicts()) {
+          const conflicts = await getConflictInfo(repo, pr.sourceBranch, pr.targetBranch);
+          throw { status: 409, conflicts };
+        }
+
+        // Create merge commit
+        const sig = repo.defaultSignature();
+        await repo.createCommitOnHead(
+          [], 
+          sig,
+          sig,
+          `Merge PR #${pr.id} from ${pr.sourceBranch} into ${pr.targetBranch}`
+        );
+
+        // Push changes
+        const remote = await repo.getRemote("origin");
+        await remote.push([`refs/heads/${pr.targetBranch}:refs/heads/${pr.targetBranch}`], {
+          callbacks: {
+            certificateCheck: () => 0
+          }
+        });
+
+        // Update PR status
+        pr.status = "merged";
+        await pr.save();
+
+        res.json({ status: 'merged', message: "PR merged successfully" });
+      } catch (mergeError) {
+        if (mergeError.status === 409) {
+          res.status(409).json({ 
+            error: "Merge conflicts detected", 
+            conflicts: mergeError.conflicts 
+          });
+        } else {
+          throw mergeError;
+        }
+      }
+    } finally {
+      // Clean up temp directory
+      await fs.remove(tempDir);
+    }
   } catch (error) {
     console.error("mergePR: Error during merge process:", error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: error.message || "Error during merge process" });
   }
 };
 

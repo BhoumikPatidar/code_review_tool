@@ -2,6 +2,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../utils/api";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import {
   Paper,
   TableCell,
@@ -52,19 +54,26 @@ function PRDashboard() {
       
       // Get PR details first
       const { data: pr } = await api.get(`/prs/${id}`);
+      console.log("Attempting to merge PR:", pr);
       
       // Check permissions
       const hasPermission = await checkMergePermissions(pr.repository);
+      console.log(hasPermission);
       if (!hasPermission) {
         setMergeError("You don't have the required permissions to merge this PR");
         return;
       }
 
       // Attempt merge
-      await api.post(`/prs/${id}/merge`);
-      setMessage("PR merged successfully!");
-      fetchPRs(); // Refresh the list
-    } catch (error) {
+      const response = await api.post(`/prs/${id}/merge`);
+      console.log("Merge response:", response.data);
+
+      if (response.data.status === 'merged') {
+          setMessage("PR merged successfully!");
+          fetchPRs(); // Refresh the list
+        }
+      } 
+      catch (error) {
       console.error("Error merging PR:", error);
       if (error.response?.status === 409) {
         // Handle merge conflicts

@@ -1,6 +1,7 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
+
 function PRConflicts() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -10,7 +11,17 @@ function PRConflicts() {
     return (
       <div style={{ padding: "2rem" }}>
         <h2>No conflict information available</h2>
-        <button onClick={() => navigate('/prs')}>
+        <button 
+          onClick={() => navigate('/prs')}
+          style={{
+            padding: "8px 16px",
+            backgroundColor: "#0366d6",
+            color: "white",
+            border: "none",
+            borderRadius: "6px",
+            cursor: "pointer"
+          }}
+        >
           Back to Pull Requests
         </button>
       </div>
@@ -48,7 +59,15 @@ function PRConflicts() {
 
       <button 
         onClick={() => navigate('/prs')}
-        style={{ marginTop: "2rem" }}
+        style={{
+          padding: "8px 16px",
+          backgroundColor: "#0366d6",
+          color: "white",
+          border: "none",
+          borderRadius: "6px",
+          cursor: "pointer",
+          marginTop: "2rem"
+        }}
       >
         Back to Pull Requests
       </button>
