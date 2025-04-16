@@ -100,6 +100,9 @@ function FileViewer() {
   const [diff, setDiff] = useState(null);
   const [showDiff, setShowDiff] = useState(false);
   const [latestCommit, setLatestCommit] = useState(null);
+  const currentBranch = searchParams.get("branch") || "master";
+
+  console.log("Hi branchis", currentBranch);
 
   // Fetch commit history
   const fetchCommits = async () => {
@@ -118,10 +121,22 @@ function FileViewer() {
   };
 
   // Fetch file content
+  // const fetchContent = async () => {
+  //   try {
+  //     const { data } = await api.get(`/repos/${repoName}/file`, {
+  //       params: { path: filePath }
+  //     });
+  //     setContent(data.content);
+  //     setError("");
+  //   } catch (err) {
+  //     console.error(err);
+  //     setError(err.response?.data?.error || "Error fetching file content");
+  //   }
+  // };
   const fetchContent = async () => {
     try {
       const { data } = await api.get(`/repos/${repoName}/file`, {
-        params: { path: filePath }
+        params: { path: filePath, branch: currentBranch }
       });
       setContent(data.content);
       setError("");
@@ -131,6 +146,7 @@ function FileViewer() {
     }
   };
 
+ 
   // Fetch diff between two commits
   const fetchDiff = async () => {
     if (selectedCommit1 && selectedCommit2) {
@@ -151,12 +167,19 @@ function FileViewer() {
     }
   };
 
+  // useEffect(() => {
+  //   if (filePath) {
+  //     fetchContent();
+  //     fetchCommits();
+  //   }
+  // }, [repoName, filePath]);
   useEffect(() => {
     if (filePath) {
       fetchContent();
       fetchCommits();
     }
-  }, [repoName, filePath]);
+  }, [repoName, filePath, currentBranch]);
+
 
   const handleShowDiff = () => {
     setShowDiff(true);
@@ -228,7 +251,10 @@ function FileViewer() {
           Latest commit: {latestCommit.sha.substring(0, 7)} - {latestCommit.message}
         </div>
       )}
-
+    <div style={{ marginBottom: "20px" }}>
+        {/* Optionally show the current branch */}
+        <strong>Branch:</strong> {currentBranch}
+      </div>
       <div style={{ marginBottom: "20px", display: "flex", gap: "20px", alignItems: "center" }}>
         <div>
           <label htmlFor="commit1">Base commit: </label>

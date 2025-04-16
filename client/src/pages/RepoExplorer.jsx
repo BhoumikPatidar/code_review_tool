@@ -426,6 +426,17 @@ function RepoExplorer() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
 
+  // Near your imports and before the RepoExplorer component’s return
+const handleBranchChange = (event) => {
+  // Use the previous searchParams and update only the branch parameter.
+  setSearchParams((prev) => {
+    const params = new URLSearchParams(prev);
+    params.set("branch", event.target.value);
+    // If you need to preserve "path", it should already be in prev.
+    return params;
+  });
+};
+
   const fetchBranches = async () => {
     try {
       console.log("Fetching branches for repo:", repoName);
@@ -519,7 +530,7 @@ function RepoExplorer() {
         <select
           id="branch-select"
           value={currentBranch}
-          onChange={(e) => setSearchParams({ path: currentPath, branch: e.target.value })}
+          onChange={handleBranchChange}
           style={{ padding: "8px", borderRadius: "4px", border: "1px solid #d1d5da" }}
         >
           {branches.map((branch) => (
@@ -556,9 +567,9 @@ function RepoExplorer() {
                   ? `${currentPath}/${entry.name}`
                   : entry.name;
                 if (entry.type === "directory") {
-                  navigate(`/explore/${repoName}?path=${newPath}`);
+                  navigate(`/explore/${repoName}?path=${newPath}&branch=${currentBranch}`);
                 } else {
-                  navigate(`/view/${repoName}?path=${newPath}`);
+                  navigate(`/view/${repoName}?path=${newPath}&branch=${currentBranch}`);
                 }
               }}
               style={{
