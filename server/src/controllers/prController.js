@@ -111,7 +111,7 @@ const mergePR__ = async (req, res) => {
     }
 
     // const bareRepoPath = path.join(REPO_BASE_PATH, pr.repository);
-    const bareRepoPath = "file://" + path.join(REPO_BASE_PATH, pr.repository);
+    const bareRepoPath = "file://" + path.join(REPO_BASE_PATH, pr.repository) + ".git";
     console.log("mergePR: Bare repo path:", bareRepoPath);
 
     // Create a temporary directory for a working clone
