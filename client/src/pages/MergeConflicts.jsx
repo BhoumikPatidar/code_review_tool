@@ -82,3 +82,5 @@ function MergeConflicts() {
     </div>
   );
 }
+
+export default MergeConflicts;

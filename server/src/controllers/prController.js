@@ -179,8 +179,9 @@ const mergePR__ = async (req, res) => {
     } catch (mergeError) {
       console.log("Merge failed, checking for conflicts...");
       const index = await repo.index();
-      
+      console.log("index", index);
       if (index.hasConflicts()) {
+        console.log("conflicts detected");
         const conflicts = await getConflictInfo(repo, pr.sourceBranch, pr.targetBranch);
         console.log("Conflicts detected:", conflicts);
         return res.status(409).json({
