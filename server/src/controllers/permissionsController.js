@@ -208,14 +208,14 @@ function hashSshKey(sshKey) {
 exports.updatePermissions = async (req, res) => {
   try {
     const { sshKey, repo, permissions, branch } = req.body;
-
+    console.log("first0");
     // Validate inputs
     if (!sshKey || !repo || !permissions || !Array.isArray(permissions)) {
       return res.status(400).json({ 
         error: "SSH key, repo, and permissions array are required" 
       });
     }
-
+    console.log("first-1");
     // Hash the SSH key
     const sshKeyHash = hashSshKey(sshKey);
     
@@ -227,10 +227,11 @@ exports.updatePermissions = async (req, res) => {
     if (!permissionsData[sshKeyHash]) {
       permissionsData[sshKeyHash] = {};
     }
-
+    console.log("first");
     permissionsData[sshKeyHash][repo] = { permissions, branch };
+    console.log("first1");
     fs.writeFileSync(PERMISSIONS_FILE, JSON.stringify(permissionsData, null, 2));
-
+    console.log("first3");
     // Update gitolite configuration
     try {
       await updateGitoliteConf(sshKey, repo, permissions, branch);
