@@ -12,36 +12,54 @@ exports.login = async (req, res) => {
   try {
     const { username, password } = req.body;
     console.log("Login attempt for username:", username);
+    
+    // Find the user in the database to get their ID and password
+    const User = require('../models/User');
+    const user = await User.findOne({ where: { username } });
+    
+    if (!user) {
+      console.error(`❌ User not found in database for username: ${username}`);
+      return res.status(400).json({ message: "Invalid credentials" });
+    }
+    
+    // Verify password
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      console.error(`❌ Invalid password for username: ${username}`);
+      return res.status(400).json({ message: "Invalid credentials" });
+    }
+    
+    console.log("✅ Password validated successfully");
+    
     console.log("Reading ssh_to_user.json...");
     const userToSsh = fs.existsSync(SSH_TO_USER_FILE)
       ? JSON.parse(fs.readFileSync(SSH_TO_USER_FILE, "utf8"))
       : {};
     console.log("Contents of ssh_to_user.json:", JSON.stringify(userToSsh, null, 2));
+    
     const keyHash = userToSsh[username];
     console.log("Found keyHash for user:", keyHash);
+    
     if (!keyHash) {
       console.error(`❌ User not found in ssh_to_user.json for username: ${username}`);
       return res.status(400).json({ message: "Invalid credentials" });
     }
-    // Find the user in the database to get their ID
-    const User = require('../models/User');
-    const user = await User.findOne({ where: { username } });
-    if (!user) {
-      console.error(`❌ User not found in database for username: ${username}`);
-      return res.status(400).json({ message: "Invalid credentials" });
-    }
+    
     console.log("Generating JWT token with payload:", { 
       id: user.id, 
       username, 
       keyHash 
     });
+    
     // Include the user ID in the token
     const token = jwt.sign({ 
       id: user.id,
       username, 
       keyHash 
     }, process.env.JWT_SECRET, { expiresIn: "1d" });
+    
     console.log("✅ Token generated:", token);
+    
     const response = { 
       token, 
       user: { 
@@ -50,8 +68,10 @@ exports.login = async (req, res) => {
         keyHash 
       } 
     };
+    
     console.log("Sending response:", JSON.stringify(response, null, 2));
     console.log("=== LOGIN CONTROLLER END ===\n");
+    
     res.json(response);
   } catch (error) {
     console.error("❌ Login error:", error);

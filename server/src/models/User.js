@@ -31,6 +31,12 @@ const User = sequelize.define('User', {
         user.password = await bcrypt.hash(user.password, 10);
       }
     },
+    beforeUpdate: async (user) => {
+      // Only hash the password if it's been changed
+      if (user.changed('password')) {
+        user.password = await bcrypt.hash(user.password, 10);
+      }
+    }
   },
 });
 
