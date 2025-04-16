@@ -110,7 +110,8 @@ const mergePR__ = async (req, res) => {
       return res.status(400).json({ error: "PR must be approved before merging" });     
     }
 
-    const bareRepoPath = path.join(REPO_BASE_PATH, pr.repository);
+    // const bareRepoPath = path.join(REPO_BASE_PATH, pr.repository);
+    const bareRepoPath = "file://" + path.join(REPO_BASE_PATH, pr.repository);
     console.log("mergePR: Bare repo path:", bareRepoPath);
 
     // Create a temporary directory for a working clone
