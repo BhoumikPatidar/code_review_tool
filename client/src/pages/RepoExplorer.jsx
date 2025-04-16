@@ -416,7 +416,8 @@ function RepoExplorer() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const currentPath = searchParams.get("path") || "";
-  const currentBranch = searchParams.get("branch") || "main";
+  // const currentBranch = searchParams.get("branch") || "main";
+  const currentBranch = searchParams.get("branch");
   const [tree, setTree] = useState({ path: currentPath, entries: [] });
   const [branches, setBranches] = useState([]);
   const [commits, setCommits] = useState([]);

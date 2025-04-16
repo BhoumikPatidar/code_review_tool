@@ -100,14 +100,21 @@ function FileViewer() {
   const [diff, setDiff] = useState(null);
   const [showDiff, setShowDiff] = useState(false);
   const [latestCommit, setLatestCommit] = useState(null);
-  const currentBranch = searchParams.get("branch") || "master";
-
+  // const currentBranch = searchParams.get("branch") ;
+  const [currentBranch, setCurrentBranch] = useState(searchParams.get("branch"));
+  useEffect(() => {
+    const branch = searchParams.get("branch");
+    console.log("Branch from URL:", branch);
+    setCurrentBranch(branch);
+  }, [searchParams]);
   console.log("Hi branchis", currentBranch);
 
   // Fetch commit history
   const fetchCommits = async () => {
     try {
-      const { data } = await api.get(`/repos/${repoName}/commits`);
+      const { data } = await api.get(`/repos/${repoName}/commits`, {
+        params: { branch: currentBranch }
+      });
       setCommits(data.commits || []);
       if (data.commits?.length > 0) {
         setLatestCommit(data.commits[0]);
@@ -133,15 +140,31 @@ function FileViewer() {
   //     setError(err.response?.data?.error || "Error fetching file content");
   //   }
   // };
+  // const fetchContent = async () => {
+  //   try {
+  //     const { data } = await api.get(`/repos/${repoName}/file`, {
+  //       params: { path: filePath, branch: currentBranch }
+  //     });
+  //     setContent(data.content);
+  //     setError("");
+  //   } catch (err) {
+  //     console.error(err);
+  //     setError(err.response?.data?.error || "Error fetching file content");
+  //   }
+  // };
   const fetchContent = async () => {
     try {
+      console.log("Fetching content for branch:", currentBranch);
       const { data } = await api.get(`/repos/${repoName}/file`, {
-        params: { path: filePath, branch: currentBranch }
+        params: { 
+          path: filePath, 
+          branch: currentBranch || 'master' // Fallback to master only in API call
+        }
       });
       setContent(data.content);
       setError("");
     } catch (err) {
-      console.error(err);
+      console.error("Error fetching content:", err);
       setError(err.response?.data?.error || "Error fetching file content");
     }
   };
@@ -155,7 +178,8 @@ function FileViewer() {
           params: {
             commit1: selectedCommit1,
             commit2: selectedCommit2,
-            filePath: filePath
+            filePath: filePath,
+            branch: currentBranch
           }
         });
         setDiff(data.diff);
@@ -227,8 +251,20 @@ function FileViewer() {
   return (
     <div style={{ padding: "2rem" }}>
       <div style={{ marginBottom: "20px" }}>
-        <Link 
+        {/* <Link 
           to={`/explore/${repoName}?path=${filePath.substring(0, filePath.lastIndexOf("/"))}`}
+          style={{
+            textDecoration: "none",
+            color: "#0366d6",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "4px"
+          }}
+        >
+          ← Back to folder
+        </Link> */}
+        <Link 
+          to={`/explore/${repoName}?path=${filePath.substring(0, filePath.lastIndexOf("/"))}&branch=${currentBranch}`}
           style={{
             textDecoration: "none",
             color: "#0366d6",

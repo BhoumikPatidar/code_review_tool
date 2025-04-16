@@ -469,11 +469,11 @@ async function getConflictInfo(repo, sourceBranch, targetBranch) {
 
       conflicts.push({
         file: entry.path(),
-        content: `
- ${targetBranch}
+        content: `<<<<<<< ${targetBranch}
 ${ourBlob.toString()}
-${theirBlob.toString()} ${sourceBranch}
-`
+=======
+${theirBlob.toString()}
+>>>>>>> ${sourceBranch}`,
       });
     }
   } catch (error) {

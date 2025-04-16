@@ -20,7 +20,7 @@ import Permissions from "./pages/Permissions";
 import Navbar from "./components/NavBar";
 import Repositories from "./pages/Repositories";
 import PRConflicts from "./pages/PRConflicts";
-
+import MergeConflicts from './pages/MergeConflicts';
 // Component to handle header rendering based on auth
 function AppContent() {
   const { isAuthenticated, loading } = useAuth();
@@ -48,6 +48,7 @@ function AppContent() {
         {/* <Route path="/repositories" element={<Repositories />} />
         <Route path="/explore/:repoName" element={<RepoExplorer />} />
         <Route path="/view/:repoName" element={<FileViewer />} /> */}
+        <Route path="/merge-conflicts" element={<MergeConflicts />} />
         
         {/* Protected routes */}
         <Route 

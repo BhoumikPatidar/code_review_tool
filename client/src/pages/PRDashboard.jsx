@@ -80,7 +80,7 @@ function PRDashboard() {
       }
   
       // Attempt merge - Remove '/api' prefix
-      const response = await api.post(`/prs/${id}/merge`);
+      const response = await api.post(`/prs/${pr.id}/merge`);
       console.log("Merge response:", response.data);
   
       if (response.data.status === 'merged') {
@@ -90,8 +90,8 @@ function PRDashboard() {
     } catch (error) {
       console.error("Error merging PR:", error);
       if (error.response?.status === 409) {
-        navigate(`/prs/${id}/conflicts`, { 
-          state: { conflicts: error.response.data.conflicts }
+        navigate(`/merge-conflicts`, { 
+          state: { conflicts: error.response.data.conflicts, pr:pr}
         });
       } else {
         setMergeError(error.response?.data?.error || "Error merging PR");
