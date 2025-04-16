@@ -310,7 +310,7 @@ function PRDashboard() {
           </table> */}
         </>
       )}
-      <table style={{ width: "100%", marginTop: "2rem" }}>
+      {/* <table style={{ width: "100%", marginTop: "2rem" }}>
         <thead>
           <tr>
             <th>ID</th>
@@ -356,7 +356,7 @@ function PRDashboard() {
             </tr>
           ))}
         </tbody>
-      </table>
+      </table> */}
     </div>
   );
 }
