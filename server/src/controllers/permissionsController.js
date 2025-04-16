@@ -303,7 +303,7 @@ exports.updatePermissions = async (req, res) => {
       if (!gitoliteConf.some((line) => line.startsWith("repo gitolite-admin"))) {
         gitoliteConf.unshift("repo gitolite-admin\n    RW+     =   admin");
       }
-  
+        console.log(1);
       // Check if the repo already exists in the config
       const repoIndex = gitoliteConf.findIndex((line) => line.startsWith(`repo ${repo}`));
       if (repoIndex !== -1) {
@@ -314,7 +314,7 @@ exports.updatePermissions = async (req, res) => {
         gitoliteConf = gitoliteConf.filter(
           (line) => !line.includes(`= ${keyHash}`) || !line.startsWith("    ")
         );
-  
+        console.log(2);
         // Add new permissions for this SSH key
         permissions.forEach((perm) => {
           const newPermission = branch
@@ -333,15 +333,15 @@ exports.updatePermissions = async (req, res) => {
         });
         gitoliteConf.push(newRepoEntry.join("\n"));
       }
-  
+      console.log(3);
       // Write the updated config back to gitolite.conf
       fs.writeFileSync(GITOLITE_CONF_PATH, gitoliteConf.join("\n"), "utf8");
-  
+      console.log(4);
       // Commit and push the changes to the gitolite-admin repo
       execSync(`cd ${GITOLITE_ADMIN_PATH} && git add . && git commit -m "Update permissions" && git push`, {
         stdio: "inherit",
       });
-  
+      console.log(5);
       console.log("Gitolite configuration updated and pushed successfully.");
     } catch (err) {
       console.error("Error updating gitolite.conf:", err);
