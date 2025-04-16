@@ -36,9 +36,9 @@ function Header() {
         <Link to="/repositories" style={{ marginRight: "1rem" }}>
           Repositories
         </Link>
-        <Link to="/sshkey" style={{ marginRight: "1rem" }}>
+        {/* <Link to="/sshkey" style={{ marginRight: "1rem" }}>
           SSH Key
-        </Link>
+        </Link> */}
         <Link to="/permissions" style={{ marginRight: "1rem" }}>
           Manage Permissions
         </Link> {/* Added Manage Permissions link */}
