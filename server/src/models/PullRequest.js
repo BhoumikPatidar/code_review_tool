@@ -64,7 +64,7 @@ const PullRequest = sequelize.define('PullRequest', {
 
 PullRequest.belongsTo(User, { as: 'creator', foreignKey: 'creatorId' });
 PullRequest.belongsTo(User, { as: 'approver', foreignKey: 'approvedBy' });
-PullRequest.belongsTo(User, { as: 'merger', foreignKey: 'mergedBy' });PullRequest.belongsTo(User, { as: 'creator', foreignKey: 'creatorId' });
+PullRequest.belongsTo(User, { as: 'merger', foreignKey: 'mergedBy' });PullRequest.belongsTo(User, { as: 'creator1', foreignKey: 'creatorId' });
 User.hasMany(PullRequest, { as: 'pullRequests', foreignKey: 'creatorId' });
 
 module.exports = PullRequest;
