@@ -148,19 +148,149 @@ async function listRepos(req, res) {
 //     res.status(500).json({ error: error.message });
 //   }
 // }
+// async function createRepo(req, res) {
+//   try {
+//     const { name } = req.body;
+//     if (!name) {
+//       return res.status(400).json({ error: "Repository name is required" });
+//     }
+
+//     // Get creator's SSH key hash from ssh_to_user.json
+//     const sshToUser = JSON.parse(fs.readFileSync(SSH_TO_USER_FILE, "utf8"));
+//     const creatorKeyHash = req.user.keyHash; // This comes from auth middleware
+
+//     if (!creatorKeyHash) {
+//       return res.status(400).json({ error: "Could not determine creator's SSH key" });
+//     }
+
+//     // Ensure repository name ends with .git
+//     const repoName = name.endsWith('.git') ? name : `${name}.git`;
+//     const newRepoPath = path.join(REPO_BASE_PATH, repoName);
+
+//     // Check if repository already exists
+//     try {
+//       await fs.access(newRepoPath);
+//       return res.status(400).json({ error: "Repository already exists" });
+//     } catch (err) {
+//       // Repository doesn't exist; continue to create.
+//     }
+
+//     console.log("Creating repository at:", newRepoPath);
+//     // Create a bare repository (isBare = 1)
+//     const repo = await NodeGit.Repository.init(newRepoPath, 1);
+//     console.log("Repository created at:", repo.path());
+
+//     // Update permissions.json to give creator RW+ access
+//     const permissionsPath = "/var/lib/git/permissions.json";
+//     const permissions = fs.existsSync(permissionsPath)
+//       ? JSON.parse(fs.readFileSync(permissionsPath, "utf8"))
+//       : {};
+
+//     if (!permissions[creatorKeyHash]) {
+//       permissions[creatorKeyHash] = {};
+//     }
+
+//     // Give RW+ permission to the creator
+//     const repoBaseName = name.replace('.git', '');
+//     permissions[creatorKeyHash][repoBaseName] = {
+//       permissions: ["RW+"],
+//       branch: ""  // Empty string for all branches
+//     };
+
+//     // Write updated permissions to file
+//     fs.writeFileSync(permissionsPath, JSON.stringify(permissions, null, 2));
+
+//     // Update gitolite configuration using existing function
+//     const { updateGitoliteConf } = require('./permissionsController');
+//     try {
+//       await updateGitoliteConf(req.user.sshKey, repoBaseName, ["RW+"], "");
+//     } catch (gitoliteError) {
+//       console.error("Error updating gitolite config:", gitoliteError);
+//       // Continue anyway since the permissions.json was updated
+//     }
+
+//     res.json({ 
+//       message: "Repository created successfully and permissions granted", 
+//       repository: repoName 
+//     });
+//   } catch (error) {
+//     console.error("Error creating repository:", error);
+//     res.status(500).json({ error: error.message });
+//   }
+// }
+
+// async function getCommits(req, res) {
+//   const repoName = req.params.repoName;
+//   const repoPath = path.join(REPO_BASE_PATH, repoName.endsWith('.git') ? repoName : `${repoName}.git`);
+
+//   console.log("Attempting to open repository at path:", repoPath);
+
+//   try {
+//     const repo = await NodeGit.Repository.open(repoPath);
+//     let headCommit;
+
+//     // Try to get the HEAD commit.
+//     try {
+//       const branchName = (await repo.getCurrentBranch()).shorthand();
+//       headCommit = await repo.getBranchCommit(branchName);
+//     } catch (e) {
+//       console.warn("getHeadCommit failed:", e.message);
+//       headCommit = null;
+//     }
+
+//     // If no HEAD, try to get the commit from the 'main' branch.
+//     if (!headCommit) {
+//       try {
+//         headCommit = await repo.getBranchCommit('master');
+//       } catch (e) {
+//         console.warn("getBranchCommit('master') failed:", e.message);
+//         return res.json({ commits: [] });
+//       }
+//     }
+
+//     let commits = [];
+//     const history = headCommit.history();
+
+//     history.on("commit", commit => {
+//       commits.push({
+//         sha: commit.sha(),
+//         message: commit.message().trim(),
+//         author: commit.author().name(),
+//         date: commit.date()
+//       });
+//     });
+
+//     history.on("end", () => {
+//       res.json({ commits });
+//     });
+
+//     history.on("error", err => {
+//       console.error("Error reading commit history:", err);
+//       res.status(500).json({ error: "Error reading commit history" });
+//     });
+
+//     history.start();
+//   } catch (err) {
+//     console.error("Error opening repository:", err.message);
+//     res.status(500).json({ error: "Error opening repository" });
+//   }
+// }
+
 async function createRepo(req, res) {
   try {
+    console.log("\n=== CREATE REPO START ===");
     const { name } = req.body;
     if (!name) {
       return res.status(400).json({ error: "Repository name is required" });
     }
 
-    // Get creator's SSH key hash from ssh_to_user.json
-    const sshToUser = JSON.parse(fs.readFileSync(SSH_TO_USER_FILE, "utf8"));
-    const creatorKeyHash = req.user.keyHash; // This comes from auth middleware
+    // Get creator's details from auth middleware
+    const creatorKeyHash = req.user.keyHash;
+    const creatorSshKey = req.user.sshKey; // Make sure this is available from auth middleware
 
-    if (!creatorKeyHash) {
-      return res.status(400).json({ error: "Could not determine creator's SSH key" });
+    if (!creatorKeyHash || !creatorSshKey) {
+      console.error("Missing user authentication details:", { keyHash: !!creatorKeyHash, sshKey: !!creatorSshKey });
+      return res.status(400).json({ error: "Could not determine creator's credentials" });
     }
 
     // Ensure repository name ends with .git
@@ -176,103 +306,47 @@ async function createRepo(req, res) {
     }
 
     console.log("Creating repository at:", newRepoPath);
-    // Create a bare repository (isBare = 1)
     const repo = await NodeGit.Repository.init(newRepoPath, 1);
     console.log("Repository created at:", repo.path());
 
-    // Update permissions.json to give creator RW+ access
-    const permissionsPath = "/var/lib/git/permissions.json";
-    const permissions = fs.existsSync(permissionsPath)
-      ? JSON.parse(fs.readFileSync(permissionsPath, "utf8"))
+    // Update permissions.json
+    console.log("Updating permissions.json...");
+    const permissions = fs.existsSync(PERMISSIONS_FILE)
+      ? JSON.parse(fs.readFileSync(PERMISSIONS_FILE, "utf8"))
       : {};
 
     if (!permissions[creatorKeyHash]) {
       permissions[creatorKeyHash] = {};
     }
 
-    // Give RW+ permission to the creator
     const repoBaseName = name.replace('.git', '');
     permissions[creatorKeyHash][repoBaseName] = {
       permissions: ["RW+"],
-      branch: ""  // Empty string for all branches
+      branch: ""
     };
 
-    // Write updated permissions to file
-    fs.writeFileSync(permissionsPath, JSON.stringify(permissions, null, 2));
+    fs.writeFileSync(PERMISSIONS_FILE, JSON.stringify(permissions, null, 2));
+    console.log("permissions.json updated");
 
-    // Update gitolite configuration using existing function
-    const { updateGitoliteConf } = require('./permissionsController');
+    // Update gitolite configuration
+    console.log("Updating gitolite configuration...");
     try {
-      await updateGitoliteConf(req.user.sshKey, repoBaseName, ["RW+"], "");
+      await updateGitoliteConf(creatorSshKey, repoBaseName, ["RW+"], "");
+      console.log("Gitolite configuration updated");
     } catch (gitoliteError) {
       console.error("Error updating gitolite config:", gitoliteError);
-      // Continue anyway since the permissions.json was updated
+      // Don't return error yet since permissions.json was updated
     }
 
+    console.log("=== CREATE REPO END ===\n");
     res.json({ 
       message: "Repository created successfully and permissions granted", 
       repository: repoName 
     });
+
   } catch (error) {
-    console.error("Error creating repository:", error);
+    console.error("Error in createRepo:", error);
     res.status(500).json({ error: error.message });
-  }
-}
-
-async function getCommits(req, res) {
-  const repoName = req.params.repoName;
-  const repoPath = path.join(REPO_BASE_PATH, repoName.endsWith('.git') ? repoName : `${repoName}.git`);
-
-  console.log("Attempting to open repository at path:", repoPath);
-
-  try {
-    const repo = await NodeGit.Repository.open(repoPath);
-    let headCommit;
-
-    // Try to get the HEAD commit.
-    try {
-      const branchName = (await repo.getCurrentBranch()).shorthand();
-      headCommit = await repo.getBranchCommit(branchName);
-    } catch (e) {
-      console.warn("getHeadCommit failed:", e.message);
-      headCommit = null;
-    }
-
-    // If no HEAD, try to get the commit from the 'main' branch.
-    if (!headCommit) {
-      try {
-        headCommit = await repo.getBranchCommit('master');
-      } catch (e) {
-        console.warn("getBranchCommit('master') failed:", e.message);
-        return res.json({ commits: [] });
-      }
-    }
-
-    let commits = [];
-    const history = headCommit.history();
-
-    history.on("commit", commit => {
-      commits.push({
-        sha: commit.sha(),
-        message: commit.message().trim(),
-        author: commit.author().name(),
-        date: commit.date()
-      });
-    });
-
-    history.on("end", () => {
-      res.json({ commits });
-    });
-
-    history.on("error", err => {
-      console.error("Error reading commit history:", err);
-      res.status(500).json({ error: "Error reading commit history" });
-    });
-
-    history.start();
-  } catch (err) {
-    console.error("Error opening repository:", err.message);
-    res.status(500).json({ error: "Error opening repository" });
   }
 }
 
