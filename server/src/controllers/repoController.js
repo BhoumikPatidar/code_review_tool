@@ -126,34 +126,6 @@ async function createRepo(req, res) {
     if (!name) {
       return res.status(400).json({ error: "Repository name is required" });
     }
-    // Ensure repository name ends with .git
-    const repoName = name.endsWith('.git') ? name : `${name}.git`;
-    const newRepoPath = path.join(REPO_BASE_PATH, repoName);
-
-    // Check if repository already exists
-    try {
-      await fs.access(newRepoPath);
-      return res.status(400).json({ error: "Repository already exists" });
-    } catch (err) {
-      // Repository doesn't exist; continue to create.
-    }
-
-    console.log("Creating repository at:", newRepoPath);
-    // Create a bare repository (isBare = 1)
-    const repo = await NodeGit.Repository.init(newRepoPath, 1);
-    console.log("Repository created at:", repo.path());
-    res.json({ message: "Repository created successfully", repository: repoName });
-  } catch (error) {
-    console.error("Error creating repository:", error);
-    res.status(500).json({ error: error.message });
-  }
-}
-async function createRepo(req, res) {
-  try {
-    const { name } = req.body;
-    if (!name) {
-      return res.status(400).json({ error: "Repository name is required" });
-    }
 
     // Get creator's SSH key hash from ssh_to_user.json
     const sshToUser = JSON.parse(fs.readFileSync(SSH_TO_USER_FILE, "utf8"));
@@ -197,17 +169,17 @@ async function createRepo(req, res) {
       branch: ""  // Empty string for all branches
     };
 
-    // // Write updated permissions to file
-    // fs.writeFileSync(permissionsPath, JSON.stringify(permissions, null, 2));
+    // Write updated permissions to file
+    fs.writeFileSync(permissionsPath, JSON.stringify(permissions, null, 2));
 
-    // // Update gitolite configuration using existing function
-    // const { updateGitoliteConf } = require('./permissionsController');
-    // try {
-    //   await updateGitoliteConf(req.user.sshKey, repoBaseName, ["RW+"], "");
-    // } catch (gitoliteError) {
-    //   console.error("Error updating gitolite config:", gitoliteError);
-    //   // Continue anyway since the permissions.json was updated
-    // }
+    // Update gitolite configuration using existing function
+    const { updateGitoliteConf } = require('./permissionsController');
+    try {
+      await updateGitoliteConf(req.user.sshKey, repoBaseName, ["RW+"], "");
+    } catch (gitoliteError) {
+      console.error("Error updating gitolite config:", gitoliteError);
+      // Continue anyway since the permissions.json was updated
+    }
 
     res.json({ 
       message: "Repository created successfully and permissions granted", 
