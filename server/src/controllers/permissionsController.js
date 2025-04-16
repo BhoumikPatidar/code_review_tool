@@ -346,7 +346,7 @@ exports.updatePermissions = async (req, res) => {
   // }
   const KEYDIR_PATH = path.join(GITOLITE_ADMIN_PATH, "keydir");
   
-  function updateGitoliteConf(sshKey, repo, permissions, branch) {
+exports.updateGitoliteConf = function updateGitoliteConf(sshKey, repo, permissions, branch) {
     try {
       // Generate a unique hash for the SSH key
       const keyHash = crypto.createHash("sha256").update(sshKey).digest("hex");

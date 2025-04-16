@@ -4,6 +4,8 @@ const path = require("path");
 const fs = require('fs');
 const os = require('os');
 const PullRequest = require("../models/PullRequest");
+const { updateGitoliteConf } = require('./permissionsController');
+
 
 // Define the base directory where your repositories are located
 const REPO_BASE_PATH = "/home/git/repositories";
