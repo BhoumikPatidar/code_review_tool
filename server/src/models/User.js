@@ -19,19 +19,14 @@ const User = sequelize.define('User', {
     type: DataTypes.STRING,
     allowNull: false,
   },
-  publicKey: {   // NEW FIELD for SSH public key
+  publicKey: {   // Field for SSH public key
     type: DataTypes.TEXT,
     allowNull: true,
   },
 }, {
   tableName: "users",
-  hooks: {
-    beforeCreate: async (user) => {
-      if (user.password) {
-        user.password = await bcrypt.hash(user.password, 10);
-      }
-    },
-  },
+  // Remove the password hash hook as we'll handle it in the controller
+  // This avoids double-hashing when updating the User model
 });
 
 module.exports = User;
