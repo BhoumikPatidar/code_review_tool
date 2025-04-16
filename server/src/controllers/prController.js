@@ -149,13 +149,14 @@ const mergePR__ = async (req, res) => {
       console.log("mergePR: Analyzing merge possibility...");
       const targetAnnotatedCommit = await NodeGit.AnnotatedCommit.fromRef(repo, targetRef);
       const sourceAnnotatedCommit = await NodeGit.AnnotatedCommit.fromRef(repo, sourceRef);
-      const analysis = await NodeGit.Merge.analysis(
+      const analyzeResult = await NodeGit.Merge.analyze(
         repo,
-        [sourceAnnotatedCommit],
-        targetAnnotatedCommit
+        sourceAnnotatedCommit,
+        null,
+        null
       );
       
-      if (analysis & NodeGit.Merge.ANALYSIS.NORMAL) {
+      if (analyzeResult & NodeGit.Merge.ANALYSIS.NORMAL) {
         console.log("mergePR: Normal merge is possible");
         
         // Try the merge
