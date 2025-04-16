@@ -228,14 +228,18 @@ function PRDashboard() {
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableCell>ID</TableCell>
-                  <TableCell>Repository</TableCell>
-                  <TableCell>Source Branch</TableCell>
-                  <TableCell>Target Branch</TableCell>
-                  <TableCell>Title</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Actions</TableCell>
-                  <TableCell>Details</TableCell>
+                <TableCell>ID</TableCell>
+                <TableCell>Repository</TableCell>
+                <TableCell>Source Branch</TableCell>
+                <TableCell>Target Branch</TableCell>
+                <TableCell>Title</TableCell>
+                <TableCell>Created By</TableCell>
+                <TableCell>Created At</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell>Approved By</TableCell>
+                <TableCell>Merged By</TableCell>
+                <TableCell>Actions</TableCell>
+                <TableCell>Details</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -246,7 +250,17 @@ function PRDashboard() {
                     <TableCell>{pr.sourceBranch}</TableCell>
                     <TableCell>{pr.targetBranch}</TableCell>
                     <TableCell>{pr.title}</TableCell>
+                    <TableCell>{pr.creator?.username || 'Unknown'}</TableCell>
+                    <TableCell>{new Date(pr.createdAt).toLocaleString()}</TableCell>
                     <TableCell>{pr.status}</TableCell>
+                    <TableCell>
+                      {pr.approver?.username || 'Not approved'}
+                      {pr.approvedAt && ` (${new Date(pr.approvedAt).toLocaleString()})`}
+                    </TableCell>
+                    <TableCell>
+                      {pr.merger?.username || 'Not merged'}
+                      {pr.mergedAt && ` (${new Date(pr.mergedAt).toLocaleString()})`}
+                    </TableCell>
                     <TableCell>
                       {pr.status === "open" && (
                         <button onClick={() => handleApprove(pr.id)}>

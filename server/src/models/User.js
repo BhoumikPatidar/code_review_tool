@@ -25,8 +25,19 @@ const User = sequelize.define('User', {
   },
 }, {
   tableName: "users",
-  // Remove the password hash hook as we'll handle it in the controller
-  // This avoids double-hashing when updating the User model
+  hooks: {
+    beforeCreate: async (user) => {
+      if (user.password) {
+        user.password = await bcrypt.hash(user.password, 10);
+      }
+    },
+    beforeUpdate: async (user) => {
+      // Only hash the password if it's been changed
+      if (user.changed('password')) {
+        user.password = await bcrypt.hash(user.password, 10);
+      }
+    }
+  },
 });
 
 module.exports = User;
