@@ -68,7 +68,7 @@ function PRDashboard() {
     try {
       setMergeError("");
       
-      // Get PR details first - Remove '/api' prefix
+      // Get PR details first
       const { data: pr } = await api.get(`/prs/${id}`);
       console.log("PR details:", pr);
       
@@ -79,7 +79,7 @@ function PRDashboard() {
         return;
       }
   
-      // Attempt merge - Remove '/api' prefix
+      // Attempt merge
       const response = await api.post(`/prs/${id}/merge`);
       console.log("Merge response:", response.data);
   
@@ -89,11 +89,21 @@ function PRDashboard() {
       }
     } catch (error) {
       console.error("Error merging PR:", error);
+      
+      // Check if the error is due to merge conflicts (HTTP status 409)
       if (error.response?.status === 409) {
+        console.log("Merge conflicts detected, navigating to conflict resolution page");
+        console.log("Conflict data:", error.response.data.conflicts);
+        
+        // Navigate to the conflicts page with the conflict data
         navigate(`/prs/${id}/conflicts`, { 
-          state: { conflicts: error.response.data.conflicts }
+          state: { 
+            conflicts: error.response.data.conflicts,
+            prId: id 
+          }
         });
       } else {
+        // Handle other errors
         setMergeError(error.response?.data?.error || "Error merging PR");
       }
     }
