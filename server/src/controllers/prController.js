@@ -30,25 +30,53 @@ function execPromise(command) {
  * Create a new Pull Request.
  * Expects a request body with: repository, sourceBranch, targetBranch, title, description.
  */
+// const createPR = async (req, res) => {
+//   try {
+//     console.log(req.user);
+//     const { repository, sourceBranch, targetBranch, title, description } = req.body;    
+//     const pr = await PullRequest.create({
+//       repository,
+//       sourceBranch,
+//       targetBranch,
+//       title,
+//       description,
+//       creatorId: req.user.id,
+//     });
+//     res.json(pr);
+//   } catch (error) {
+//     console.error("Error creating PR:", error);
+//     res.status(500).json({ error: error.message });
+//   }
+// };
 const createPR = async (req, res) => {
   try {
-    console.log(req.user);
-    const { repository, sourceBranch, targetBranch, title, description } = req.body;    
+    console.log("Create PR request user:", req.user); // Add better logging
+    
+    if (!req.user || !req.user.id) {
+      return res.status(400).json({ error: "User ID not available. Authentication issue detected." });
+    }
+    
+    const { repository, sourceBranch, targetBranch, title, description } = req.body;
+    
+    // Make sure we explicitly set creatorId from req.user.id
     const pr = await PullRequest.create({
       repository,
       sourceBranch,
       targetBranch,
       title,
       description,
-      creatorId: req.user.id,
+      creatorId: req.user.id // Make sure this is not undefined
     });
+    
+    // Log the created PR for debugging
+    console.log("Created PR:", JSON.stringify(pr, null, 2));
+    
     res.json(pr);
   } catch (error) {
     console.error("Error creating PR:", error);
     res.status(500).json({ error: error.message });
   }
 };
-
 
 // const listPRs = async (req, res) => {
 //   try {
@@ -61,6 +89,10 @@ const createPR = async (req, res) => {
 // };
 const listPRs = async (req, res) => {
   try {
+    console.log("\n=== LIST PRS START ===");
+    // Log the request user for debugging
+    console.log("Request user:", req.user);
+    // Find all PRs with user associations
     const prs = await PullRequest.findAll({
       include: [
         { 
@@ -81,11 +113,19 @@ const listPRs = async (req, res) => {
       ],
       order: [['createdAt', 'DESC']]
     });
-    
-    console.log("PRs with user details:", JSON.stringify(prs, null, 2));
+    // Log PRs with creator info for debugging
+    prs.forEach((pr, index) => {
+      console.log(`PR #${index + 1}:`);
+      console.log(`- ID: ${pr.id}`);
+      console.log(`- Title: ${pr.title}`);
+      console.log(`- Creator ID: ${pr.creatorId}`);
+      console.log(`- Creator: ${pr.creator ? pr.creator.username : 'null'}`);
+    });
+    console.log("=== LIST PRS END ===\n");
     res.json(prs);
   } catch (error) {
     console.error("Error listing PRs:", error);
+    console.error("Stack trace:", error.stack);
     res.status(500).json({ error: error.message });
   }
 };

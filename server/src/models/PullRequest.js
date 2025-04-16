@@ -72,25 +72,15 @@
 
 
 
-// server/src/models/PullRequest.js
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
 const User = require('./User');
-
 const PullRequest = sequelize.define('PullRequest', {
   id: {
     type: DataTypes.INTEGER,
     allowNull: false,
     primaryKey: true,
     autoIncrement: true,
-  },
-  creatorId: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    references: {
-      model: User,
-      key: 'id'
-    }
   },
   repository: {
     type: DataTypes.STRING,
@@ -115,6 +105,14 @@ const PullRequest = sequelize.define('PullRequest', {
   status: {
     type: DataTypes.ENUM('open', 'approved', 'merged', 'rejected'),
     defaultValue: 'open',
+  },
+  creatorId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: User,
+      key: 'id'
+    }
   },
   approvedBy: {
     type: DataTypes.INTEGER,
@@ -143,11 +141,12 @@ const PullRequest = sequelize.define('PullRequest', {
 }, {
   tableName: 'pull_requests',
 });
-
-// Define the associations
-PullRequest.belongsTo(User, { as: 'creator', foreignKey: 'creatorId' });
-PullRequest.belongsTo(User, { as: 'approver', foreignKey: 'approvedBy' });
-PullRequest.belongsTo(User, { as: 'merger', foreignKey: 'mergedBy' });
-User.hasMany(PullRequest, { as: 'createdPullRequests', foreignKey: 'creatorId' });
-
+// Define the associations more clearly
+PullRequest.belongsTo(User, { foreignKey: 'creatorId', as: 'creator' });
+PullRequest.belongsTo(User, { foreignKey: 'approvedBy', as: 'approver' });
+PullRequest.belongsTo(User, { foreignKey: 'mergedBy', as: 'merger' });
+// The inverse associations
+User.hasMany(PullRequest, { foreignKey: 'creatorId', as: 'createdPullRequests' });
+User.hasMany(PullRequest, { foreignKey: 'approvedBy', as: 'approvedPullRequests' });
+User.hasMany(PullRequest, { foreignKey: 'mergedBy', as: 'mergedPullRequests' });
 module.exports = PullRequest;
