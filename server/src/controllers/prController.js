@@ -127,7 +127,6 @@ const approvePR = async (req, res) => {
     if (!pr) {
       return res.status(404).json({ error: "Pull Request not found" });
     }
-    console.log(req.user);
     pr.status = "approved";
     pr.approvedBy = req.user.id;
     pr.approvedAt = new Date();
