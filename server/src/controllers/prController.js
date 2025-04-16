@@ -6,7 +6,7 @@ const fs = require("fs-extra"); // Using fs-extra for convenient directory remov
 const { exec } = require("child_process");
 const PullRequest = require("../models/PullRequest");
 const util = require("util");
-
+const User = require("../models/User");
 
 // Base directory where your bare repositories are stored
 const REPO_BASE_PATH = "/home/git/repositories";
@@ -62,12 +62,26 @@ const listPRs = async (req, res) => {
   try {
     const prs = await PullRequest.findAll({
       include: [
-        { model: User, as: 'creator', attributes: ['username'] },
-        { model: User, as: 'approver', attributes: ['username'] },
-        { model: User, as: 'merger', attributes: ['username'] }
+        { 
+          model: User, 
+          as: 'creator', 
+          attributes: ['id', 'username']
+        },
+        { 
+          model: User, 
+          as: 'approver', 
+          attributes: ['id', 'username']
+        },
+        { 
+          model: User, 
+          as: 'merger', 
+          attributes: ['id', 'username']
+        }
       ],
       order: [['createdAt', 'DESC']]
     });
+    
+    console.log("PRs with user details:", JSON.stringify(prs, null, 2));
     res.json(prs);
   } catch (error) {
     console.error("Error listing PRs:", error);
