@@ -16,6 +16,10 @@ import RepoExplorer from "./pages/RepoExplorer";
 import FileViewer from "./pages/FileViewer";
 import LoadingSpinner from "./context/LoadingSpinner";
 import { useEffect } from "react";
+import Permissions from "./pages/Permissions";
+import Navbar from "./components/NavBar";
+import Repositories from "./pages/Repositories";
+import PRConflicts from "./pages/PRConflicts";
 
 // Component to handle header rendering based on auth
 function AppContent() {
@@ -34,12 +38,16 @@ function AppContent() {
 
   return (
     <div style={{ width: "100%" }}>
+      {/* {isAuthenticated && <Navbar />} */}
       {isAuthenticated && <Header />}
       <Routes>
         {/* Public routes */}
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        {/* <Route path="/repositories" element={<Repositories />} />
+        <Route path="/explore/:repoName" element={<RepoExplorer />} />
+        <Route path="/view/:repoName" element={<FileViewer />} /> */}
         
         {/* Protected routes */}
         <Route 
@@ -47,6 +55,14 @@ function AppContent() {
           element={
             <ProtectedRoute>
               <Dashboard />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/permissions" 
+          element={
+            <ProtectedRoute>
+              <Permissions />
             </ProtectedRoute>
           } 
         />
@@ -70,7 +86,7 @@ function AppContent() {
           path="/repositories" 
           element={
             <ProtectedRoute>
-              <RepositoryManagement />
+              <Repositories />
             </ProtectedRoute>
           } 
         />
@@ -98,12 +114,29 @@ function AppContent() {
             </ProtectedRoute>
           } 
         />
+        <Route 
+          path="/prs/:id/conflicts" 
+          element={
+            <ProtectedRoute>
+              <PRConflicts />
+            </ProtectedRoute>
+          } 
+        />
       </Routes>
+      
     </div>
   );
 }
 
-// Main App component with AuthProvider
+// // Main App component with AuthProvider
+// function App() {
+//   return (
+//     <AuthProvider>
+//       <AppContent />
+//     </AuthProvider>
+//   );
+// }
+
 function App() {
   return (
     <AuthProvider>

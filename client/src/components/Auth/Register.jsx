@@ -6,15 +6,14 @@ import "./Auth.css";
 function Register() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [publicKey, setPublicKey] = useState(""); // New state for SSH key
   const [error, setError] = useState("");
   const navigate = useNavigate();
   const location = useLocation();
   const { register, isAuthenticated } = useAuth();
 
-  // Get the page user was trying to access
+  // Redirect if already authenticated
   const from = location.state?.from || "/repositories";
-
-  // If already authenticated, redirect
   useEffect(() => {
     if (isAuthenticated) {
       navigate(from, { replace: true });
@@ -24,13 +23,16 @@ function Register() {
   const handleRegister = async (e) => {
     e.preventDefault();
     setError("");
-
-    const result = await register(username, password);
-    
-    if (result.success) {
-      navigate(from, { replace: true });
-    } else {
-      setError(result.message);
+    try {
+      const result = await register(username, password, publicKey);
+      if (result.success) {
+        navigate(from, { replace: true });
+      } else {
+        setError(result.message);
+      }
+    } catch (err) {
+      console.error("Error registering user:", err);
+      setError("Failed to register user");
     }
   };
 
@@ -52,6 +54,13 @@ function Register() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
+        />
+        <textarea
+          placeholder="Enter your SSH public key"
+          value={publicKey}
+          onChange={(e) => setPublicKey(e.target.value)}
+          required
+          style={{ height: "100px" }}
         />
         <button type="submit">Register</button>
       </form>

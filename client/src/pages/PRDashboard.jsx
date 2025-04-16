@@ -2,6 +2,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../utils/api";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import {
   Paper,
   TableCell,
@@ -25,6 +27,77 @@ function PRDashboard() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
+  const [mergeError, setMergeError] = useState("");
+  const { currentUser } = useAuth();
+  const navigate = useNavigate();
+
+  const checkMergePermissions = async (repository) => {
+    try {
+      console.log("Checking merge permissions for repository:", repository);
+      
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.error("No auth token found");
+        return false;
+      }
+      console.log(1);
+      // Get user permissions
+      const response = await api.get('/permissions/user');
+      console.log(2);
+      console.log("Permissions response:", response.data);
+  
+      const { repositories } = response.data;
+      
+      // Find repository permissions
+      const repoPermissions = repositories.find(repo => repo.name === repository);
+      console.log("Repository permissions:", repoPermissions);
+  
+      // Check for RW+ permission
+      const hasPermission = repoPermissions?.permissions?.includes('RW+');
+      console.log(`Has RW+ permission for ${repository}: ${hasPermission}`);
+  
+      return hasPermission || false;
+    } catch (error) {
+      console.error('Error checking permissions:', error);
+      console.error('Error details:', error.response?.data || error.message);
+      return false;
+    }
+  };
+  
+  const handleMerge = async (id) => {
+    try {
+      setMergeError("");
+      
+      // Get PR details first - Remove '/api' prefix
+      const { data: pr } = await api.get(`/prs/${id}`);
+      console.log("PR details:", pr);
+      
+      // Check permissions
+      const hasPermission = await checkMergePermissions(pr.repository);
+      if (!hasPermission) {
+        setMergeError("You don't have the required permissions (RW+) to merge this PR");
+        return;
+      }
+  
+      // Attempt merge - Remove '/api' prefix
+      const response = await api.post(`/prs/${id}/merge`);
+      console.log("Merge response:", response.data);
+  
+      if (response.data.status === 'merged') {
+        setMessage("PR merged successfully!");
+        fetchPRs(); // Refresh the list
+      }
+    } catch (error) {
+      console.error("Error merging PR:", error);
+      if (error.response?.status === 409) {
+        navigate(`/prs/${id}/conflicts`, { 
+          state: { conflicts: error.response.data.conflicts }
+        });
+      } else {
+        setMergeError(error.response?.data?.error || "Error merging PR");
+      }
+    }
+  };
   // Fetch all PRs from backend
   const fetchPRs = async () => {
     setLoading(true);
@@ -83,29 +156,19 @@ function PRDashboard() {
     }
   };
 
-  // Merge a PR
-  const handleMerge = async (id) => {
-    try {
-      await api.post(`/prs/${id}/merge`);
-      setMessage("PR merged!");
-      fetchPRs();
-    } catch (error) {
-      console.error("Error merging PR:", error);
-      setMessage("Error merging PR");
-    }
-  };
-
   return (
     <div style={{ padding: "2rem" }}>
       <h2>Pull Request Dashboard</h2>
-      {message && <p>{message}</p>}
+      {/* {message && <p>{message}</p>} */}
+      {message && <p style={{ color: 'green' }}>{message}</p>}
+      {mergeError && <p style={{ color: 'red' }}>{mergeError}</p>}
 
       <h3>Create New PR</h3>
       <form onSubmit={handleCreatePR} style={{ marginBottom: "2rem" }}>
         <TextField
           // type="text"
           name="repository"
-          label="Repository (e.g., trial2.git)"
+          label="Repository (e.g., trial)"
           value={formData.repository}
           onChange={handleChange}
           required
@@ -247,6 +310,53 @@ function PRDashboard() {
           </table> */}
         </>
       )}
+      <table style={{ width: "100%", marginTop: "2rem" }}>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Repository</th>
+            <th>Source Branch</th>
+            <th>Target Branch</th>
+            <th>Title</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {prs.map((pr) => (
+            <tr key={pr.id}>
+              <td>{pr.id}</td>
+              <td>{pr.repository}</td>
+              <td>{pr.sourceBranch}</td>
+              <td>{pr.targetBranch}</td>
+              <td>{pr.title}</td>
+              <td>{pr.status}</td>
+              <td>
+                {pr.status === 'open' && (
+                  <button onClick={() => handleApprove(pr.id)}>
+                    Approve
+                  </button>
+                )}
+                {pr.status === 'approved' && (
+                  <button 
+                    onClick={() => handleMerge(pr.id)}
+                    style={{ 
+                      backgroundColor: "#238636",
+                      color: "white",
+                      border: "none",
+                      padding: "5px 10px",
+                      borderRadius: "4px",
+                      cursor: "pointer"
+                    }}
+                  >
+                    Merge
+                  </button>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

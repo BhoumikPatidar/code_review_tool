@@ -31,6 +31,9 @@ app.use('/api/prs', prRoutes);
 app.use('/api/prcomments', prCommentRoutes); // Mount the PR comments endpoint
 app.use("/api/user", userRoutes);
 
+const permissionsRoutes = require("./routes/permissionsRoutes");
+app.use("/api/permissions", permissionsRoutes);
+
 // Sync database and start the server
 syncDatabase()
   .then(() => {

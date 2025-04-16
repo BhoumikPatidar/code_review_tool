@@ -11,6 +11,7 @@ const {
   getBranches
 } = require("../controllers/repoController");
 const authMiddleware = require("../middleware/authMiddleware");
+router.use(authMiddleware);
 
 router.get("/:repoName/branches", getBranches);
 router.get("/:repoName/pr-diff", getPRDiff); // New endpoint for PR diffs
