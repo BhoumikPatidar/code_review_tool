@@ -205,36 +205,97 @@ function hashSshKey(sshKey) {
 //   }
 // };
 
+// exports.updatePermissions = async (req, res) => {
+//   try {
+//     const { sshKey, repo, permissions, branch } = req.body;
+//     console.log("first0");
+//     // Validate inputs
+//     if (!sshKey || !repo || !permissions || !Array.isArray(permissions)) {
+//       return res.status(400).json({ 
+//         error: "SSH key, repo, and permissions array are required" 
+//       });
+//     }
+//     console.log("first-1");
+//     // Hash the SSH key
+//     const sshKeyHash = hashSshKey(sshKey);
+    
+//     // Update permissions.json
+//     const permissionsData = fs.existsSync(PERMISSIONS_FILE)
+//       ? JSON.parse(fs.readFileSync(PERMISSIONS_FILE, "utf8"))
+//       : {};
+
+//     if (!permissionsData[sshKeyHash]) {
+//       permissionsData[sshKeyHash] = {};
+//     }
+//     console.log("first");
+//     permissionsData[sshKeyHash][repo] = { permissions, branch };
+//     console.log("first1");
+//     fs.writeFileSync(PERMISSIONS_FILE, JSON.stringify(permissionsData, null, 2));
+//     console.log("first3");
+//     // Update gitolite configuration
+//     try {
+//       await updateGitoliteConf(sshKey, repo, permissions, branch);
+//       res.json({ message: "Permissions updated successfully" });
+//     } catch (error) {
+//       console.error("Error updating gitolite config:", error);
+//       res.status(500).json({ error: "Failed to update gitolite configuration" });
+//     }
+//   } catch (err) {
+//     console.error("Error updating permissions:", err);
+//     res.status(500).json({ error: "Error updating permissions" });
+//   }
+// };
 exports.updatePermissions = async (req, res) => {
   try {
     const { sshKey, repo, permissions, branch } = req.body;
-    console.log("first0");
+    console.log("\n=== UPDATE PERMISSIONS START ===");
+    console.log("Received request:", { repo, permissions, branch });
+    
     // Validate inputs
     if (!sshKey || !repo || !permissions || !Array.isArray(permissions)) {
+      console.error("Invalid input data");
       return res.status(400).json({ 
         error: "SSH key, repo, and permissions array are required" 
       });
     }
-    console.log("first-1");
+
     // Hash the SSH key
     const sshKeyHash = hashSshKey(sshKey);
+    console.log("Generated key hash:", sshKeyHash);
     
-    // Update permissions.json
-    const permissionsData = fs.existsSync(PERMISSIONS_FILE)
+    // Read current permissions
+    console.log("Reading current permissions from:", PERMISSIONS_FILE);
+    const oldPermissions = fs.existsSync(PERMISSIONS_FILE) 
       ? JSON.parse(fs.readFileSync(PERMISSIONS_FILE, "utf8"))
       : {};
+    console.log("Current permissions:", oldPermissions);
 
-    if (!permissionsData[sshKeyHash]) {
-      permissionsData[sshKeyHash] = {};
+    // Create new permissions object
+    if (!oldPermissions[sshKeyHash]) {
+      oldPermissions[sshKeyHash] = {};
     }
-    console.log("first");
-    permissionsData[sshKeyHash][repo] = { permissions, branch };
-    console.log("first1");
-    fs.writeFileSync(PERMISSIONS_FILE, JSON.stringify(permissionsData, null, 2));
-    console.log("first3");
+
+    // Update permissions
+    oldPermissions[sshKeyHash][repo] = { permissions, branch };
+    console.log("Updated permissions object:", oldPermissions);
+
+    // Write to file
+    try {
+      fs.writeFileSync(PERMISSIONS_FILE, JSON.stringify(oldPermissions, null, 2));
+      console.log("Successfully wrote to permissions.json");
+      
+      // Verify write
+      const verifyContent = JSON.parse(fs.readFileSync(PERMISSIONS_FILE, "utf8"));
+      console.log("Verified file content:", verifyContent);
+    } catch (writeErr) {
+      console.error("Error writing permissions file:", writeErr);
+      throw writeErr;
+    }
+
     // Update gitolite configuration
     try {
       await updateGitoliteConf(sshKey, repo, permissions, branch);
+      console.log("=== UPDATE PERMISSIONS END ===\n");
       res.json({ message: "Permissions updated successfully" });
     } catch (error) {
       console.error("Error updating gitolite config:", error);
@@ -242,10 +303,10 @@ exports.updatePermissions = async (req, res) => {
     }
   } catch (err) {
     console.error("Error updating permissions:", err);
+    console.error("Stack trace:", err.stack);
     res.status(500).json({ error: "Error updating permissions" });
   }
 };
-
   const { execSync } = require("child_process");
   const GITOLITE_ADMIN_PATH = "/tmp/gitolite-admin"; // Path to the gitolite-admin repo
   const GITOLITE_CONF_PATH = `${GITOLITE_ADMIN_PATH}/conf/gitolite.conf`;
