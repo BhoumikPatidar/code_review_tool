@@ -68,30 +68,30 @@ function PRDashboard() {
     try {
       setMergeError("");
       
-      // Get PR details first - Remove '/api' prefix
       const { data: pr } = await api.get(`/prs/${id}`);
       console.log("PR details:", pr);
       
-      // Check permissions
       const hasPermission = await checkMergePermissions(pr.repository);
       if (!hasPermission) {
         setMergeError("You don't have the required permissions (RW+) to merge this PR");
         return;
       }
   
-      // Attempt merge - Remove '/api' prefix
-      const response = await api.post(`/prs/${pr.id}/merge`);
-      console.log("Merge response:", response.data);
-  
+      const response = await api.post(`/prs/${id}/merge`);
+      
       if (response.data.status === 'merged') {
         setMessage("PR merged successfully!");
-        fetchPRs(); // Refresh the list
+        fetchPRs();
       }
     } catch (error) {
       console.error("Error merging PR:", error);
       if (error.response?.status === 409) {
-        navigate(`/merge-conflicts`, { 
-          state: { conflicts: error.response.data.conflicts, pr:pr}
+        // Navigate to conflicts page with both conflicts and PR details
+        navigate('/merge-conflicts', { 
+          state: { 
+            conflicts: error.response.data.conflicts,
+            pr: error.response.data.pr
+          }
         });
       } else {
         setMergeError(error.response?.data?.error || "Error merging PR");

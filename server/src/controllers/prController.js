@@ -173,7 +173,28 @@ const mergePR__ = async (req, res) => {
 
     // Perform the merge using mergeBranches (higher-level API)
     console.log(`mergePR: Merging branch ${pr.sourceBranch} into ${pr.targetBranch} using mergeBranches...`);
-    await repo.mergeBranches(pr.targetBranch, pr.sourceBranch, null, NodeGit.Merge.PREFERENCE.NONE, null);
+    // await repo.mergeBranches(pr.targetBranch, pr.sourceBranch, null, NodeGit.Merge.PREFERENCE.NONE, null);
+    try {
+      await repo.mergeBranches(pr.targetBranch, pr.sourceBranch, null, NodeGit.Merge.PREFERENCE.NONE, null);
+    } catch (mergeError) {
+      console.log("Merge failed, checking for conflicts...");
+      const index = await repo.index();
+      
+      if (index.hasConflicts()) {
+        const conflicts = await getConflictInfo(repo, pr.sourceBranch, pr.targetBranch);
+        console.log("Conflicts detected:", conflicts);
+        return res.status(409).json({
+          error: "Merge conflicts detected",
+          conflicts: conflicts,
+          pr: {
+            id: pr.id,
+            sourceBranch: pr.sourceBranch,
+            targetBranch: pr.targetBranch
+          }
+        });
+      }
+      throw mergeError;
+    }
     console.log("mergePR: mergeBranches operation completed.");
 
     // Push the updated target branch back to the bare repository
