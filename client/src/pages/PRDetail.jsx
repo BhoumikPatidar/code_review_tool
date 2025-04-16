@@ -433,7 +433,7 @@ function PRDetail() {
             </div>
           )}
           <hr />
-          <h3>Commit History (Source Branch)</h3>
+          {/* <h3>Commit History (Source Branch)</h3>
           {commits.length === 0 ? (
             <p>No commits found.</p>
           ) : (
@@ -446,7 +446,7 @@ function PRDetail() {
                 </li>
               ))}
             </ul>
-          )}
+          )} */}
           {loadingDiff && <p>Loading diff...</p>}
           {diff && (
             <div>
