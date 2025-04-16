@@ -32,7 +32,6 @@ function execPromise(command) {
  */
 const createPR = async (req, res) => {
   try {
-    console.log(req.user);
     const { repository, sourceBranch, targetBranch, title, description } = req.body;    
     const pr = await PullRequest.create({
       repository,
